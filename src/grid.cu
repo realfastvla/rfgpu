@@ -6,6 +6,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <stdexcept>
 
 #include <cuda.h>
 #include <cufft.h>
@@ -17,9 +18,11 @@
 using namespace rfgpu;
 
 // TODO raise exception
-#define check_rv(func) \
+#define cusparse_check_rv(func) \
     if (rv!=CUSPARSE_STATUS_SUCCESS) { \
-        fprintf(stderr, "%s returned %d\n", func, rv); \
+        char msg[1024]; \
+        sprintf(msg, "cusparse error: %s returned %d", func, rv); \
+        throw std::runtime_error(msg); \
     }
 
 Grid::Grid(int _nbl, int _nchan, int _ntime, int _upix, int _vpix) {
@@ -32,8 +35,12 @@ Grid::Grid(int _nbl, int _nchan, int _ntime, int _upix, int _vpix) {
     h_one = make_float2(1.0,0.0);
     h_zero = make_float2(0.0,0.0);
 
-    // TODO create cusparse context
-    cusparseCreateMatDescr(&descr);
+    cusparseStatus_t rv;
+    rv = cusparseCreate(&sparse);
+    cusparse_check_rv("cusparseCreate");
+    rv = cusparseCreateMatDescr(&descr);
+    cusparse_check_rv("cusparseCreateMatDescr");
+
     cell = 80.0; // 80 wavelengths == ~42' FoV
 
     allocate();
@@ -54,6 +61,12 @@ void Grid::allocate() {
 }
 
 void Grid::set_uv(const std::vector<float> &_u, const std::vector<float> &_v) {
+    if (_u.size()!=nbl || _v.size()!=nbl) {
+        char msg[1024];
+        sprintf(msg, "Grid::set_uv array size error (u=%d v=%d nbl=%d)",
+                _u.size(), _v.size(), nbl);
+        throw std::invalid_argument(msg);
+    }
     for (int i=0; i<nbl; i++) {
         u[i] = _u[i];
         v[i] = _v[i];
@@ -61,15 +74,33 @@ void Grid::set_uv(const std::vector<float> &_u, const std::vector<float> &_v) {
 }
 
 void Grid::set_freq(const std::vector<float> &_freq) {
+    if (_freq.size()!=nchan) {
+        char msg[1024];
+        sprintf(msg, "Grid::set_freq array size error (freq=%d nchan=%d)",
+                _freq.size(), nchan);
+        throw std::invalid_argument(msg);
+    }
     for (int i=0; i<nchan; i++) { freq[i] = _freq[i]; }
 }
 
 void Grid::set_shift(const std::vector<int> &_shift) {
+    if (_shift.size()!=nchan) {
+        char msg[1024];
+        sprintf(msg, "Grid::set_shift array size error (shift=%d nchan=%d)",
+                _shift.size(), nchan);
+        throw std::invalid_argument(msg);
+    }
     maxshift=0;
     for (int i=0; i<nchan; i++) {
         if (_shift[i]>maxshift) { maxshift=_shift[i]; }
     }
-    if (maxshift>ntime) { } // TODO raise error
+    if (maxshift>ntime) { 
+        char msg[1024];
+        sprintf(msg, 
+                "Grid::set_shift max shift out of range (maxshift=%d ntime=%d)",
+                maxshift, ntime);
+        throw std::invalid_argument(msg);
+    }
     cudaMemcpy(shift.d, _shift.data(), shift.size(), cudaMemcpyHostToDevice);
 }
 
@@ -102,20 +133,20 @@ void Grid::compute() {
     size_t pbuf_size;
     rv = cusparseXcoosort_bufferSizeExt(sparse, nrow(), ncol(), nnz, 
             G_pix.d, G_cols.d, &pbuf_size);
-    check_rv("cusparseXcoosort_bufferSizeExt");
+    cusparse_check_rv("cusparseXcoosort_bufferSizeExt");
 
     Array<char> pbuf(pbuf_size);
     Array<int> perm(nnz);
     rv = cusparseCreateIdentityPermutation(sparse, nnz, perm.d);
-    check_rv("cusparseCreateIdentityPermutation");
+    cusparse_check_rv("cusparseCreateIdentityPermutation");
 
     rv = cusparseXcoosortByRow(sparse, nrow(), ncol(), nnz,
             G_pix.d, G_cols0.d, perm.d, (void *)pbuf.d);
-    check_rv("cusparseXcoosortByRow");
+    cusparse_check_rv("cusparseXcoosortByRow");
 
     rv = cusparseXcoo2csr(sparse, G_pix.d, nnz, nrow(), G_rows.d,
             CUSPARSE_INDEX_BASE_ZERO);
-    check_rv("cusparseXcoo2csr");
+    cusparse_check_rv("cusparseXcoo2csr");
 
     // Fill in normalization factors (number of vis per grid point)
     G_rows.d2h();
@@ -153,6 +184,6 @@ void Grid::operate(cdata *in, cdata *out, int itime) {
             nrow(), ncol()*ntime, nnz, &h_one, descr,
             G_vals.d, G_rows.d, G_cols.d,
             in, &h_zero, out);
-    check_rv("cusparseCcsrmv");
+    cusparse_check_rv("cusparseCcsrmv");
 }
 
