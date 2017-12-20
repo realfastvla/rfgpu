@@ -1,8 +1,21 @@
 #ifndef _ARRAY_H
 #define _ARRAY_H
 
+#include <stdexcept>
+
 #include <cuda.h>
 #include <cuda_runtime_api.h>
+
+// Run any func that returns a cudaError_t, raise exception if needed
+#define CUDA_ERROR_CHECK(code) { \
+    cudaError_t rv = code; \
+    if (rv!=cudaSuccess) { \
+        char msg[1024]; \
+        sprintf(msg, "Array: '%s' returned '%s'", #code, \
+                cudaGetErrorName(rv)); \
+        throw std::runtime_error(msg); \
+    } \
+}
 
 namespace rfgpu {
 
@@ -42,30 +55,32 @@ namespace rfgpu {
     template <class T, bool host>
     void Array<T,host>::resize(unsigned len) {
         _len = len;
-        if (d) cudaFree(d);
+        if (d) CUDA_ERROR_CHECK(cudaFree(d));
         cudaMalloc((void**)&d, size());
         if (host) {
-            if (h) cudaFreeHost(h);
-            cudaMallocHost((void**)&h, size());
+            if (h) CUDA_ERROR_CHECK(cudaFreeHost(h));
+            CUDA_ERROR_CHECK(cudaMallocHost((void**)&h, size()));
         }
     }
 
     template <class T, bool host>
     Array<T,host>::~Array() {
-        if (h) cudaFree(h); 
-        if (d) cudaFreeHost(d);
+        if (d) CUDA_ERROR_CHECK(cudaFree(d)); 
+        if (h) CUDA_ERROR_CHECK(cudaFreeHost(h));
     }
 
     template <class T, bool host>
     void Array<T,host>::h2d() {
-        if (!h || !d) { } // TODO
-        cudaMemcpy(d, h, size(), cudaMemcpyHostToDevice);
+        if (!h || !d)  
+            throw std::runtime_error("Array::h2d() missing allocation");
+        CUDA_ERROR_CHECK(cudaMemcpy(d, h, size(), cudaMemcpyHostToDevice));
     }
 
     template <class T, bool host>
     void Array<T,host>::d2h() {
-        if (!h || !d) { } // TODO
-        cudaMemcpy(h, d, size(), cudaMemcpyDeviceToHost);
+        if (!h || !d)
+            throw std::runtime_error("Array::d2h() missing allocation");
+        CUDA_ERROR_CHECK(cudaMemcpy(h, d, size(), cudaMemcpyDeviceToHost));
     }
 
     template <class T, bool host>
