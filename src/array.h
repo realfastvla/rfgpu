@@ -2,6 +2,7 @@
 #define _ARRAY_H
 
 #include <cuda.h>
+#include <cuda_runtime_api.h>
 
 namespace rfgpu {
 
@@ -13,19 +14,20 @@ namespace rfgpu {
             Array(unsigned len);
             ~Array();
             void resize(unsigned len);
-            size_t size() const { return sizeof(T)*len; }
+            size_t size() const { return sizeof(T)*_len; }
+            int len() const { return _len; }
             T *h; // Pointer to data on host
             T *d; // Pointer to data on gpu
             void h2d(); // Copy data from host to device
             void d2h(); // Copy data from device to host
             void init(T val); // Only on host
         protected:
-            unsigned len;
+            unsigned _len;
     };
 
     template <class T, bool host>
     Array<T,host>::Array() {
-        len = 0;
+        _len = 0;
         h = NULL;
         d = NULL;
     }
@@ -38,8 +40,8 @@ namespace rfgpu {
     }
 
     template <class T, bool host>
-    void Array<T,host>::resize(unsigned _len) {
-        len = _len;
+    void Array<T,host>::resize(unsigned len) {
+        _len = len;
         if (d) cudaFree(d);
         cudaMalloc((void**)&d, size());
         if (host) {
@@ -68,7 +70,7 @@ namespace rfgpu {
 
     template <class T, bool host>
     void Array<T,host>::init(T val) {
-        if (h) { for (int i=0; i<len; i++) { h[i] = val; } }
+        if (h) { for (int i=0; i<_len; i++) { h[i] = val; } }
     }
 
 }
