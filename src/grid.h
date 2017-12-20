@@ -25,7 +25,7 @@ namespace rfgpu {
 
             void compute(); // compute/sort gridding matrix
             void operate(Array<cdata,true> &in, Array<cdata,true> &out, 
-                    int itime) { operate(in.d, out.d, itime); };
+                    int itime);
             void operate(cdata *in, cdata *out, int itime);
 
             void set_cell(float size) { cell = size; }; 

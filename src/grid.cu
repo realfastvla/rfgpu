@@ -175,11 +175,33 @@ __global__ void adjust_cols(int *ocol, int *icol, int *chan,
     if (ii<nnz) { ocol[ii] = icol[ii]*ntime + lshift[chan[ii]] + itime; }
 }
 
+void Grid::operate(Array<cdata,true> &in, Array<cdata,true> &out, int itime) {
+    if (in.len()!=nbl*nchan*ntime) {
+        char msg[1024];
+        sprintf(msg, "Grid::operate input array size (%d) != expected (%d)",
+                in.len(), nbl*nchan*ntime);
+        throw std::invalid_argument(msg);
+    }
+    if (out.len()!=upix*vpix) {
+        char msg[1024];
+        sprintf(msg, "Grid::operate output array size (%d) != expected (%d)",
+                in.len(), upix*vpix);
+        throw std::invalid_argument(msg);
+    }
+    operate(in.d, out.d, itime);
+}
+
 void Grid::operate(cdata *in, cdata *out, int itime) {
-    cusparseStatus_t rv;
+    if (itime>=ntime) {
+        char msg[1024];
+        sprintf(msg, "Grid::operate itime (%d) >= ntime (%d)", itime, ntime);
+        throw std::invalid_argument(msg);
+    }
+
     adjust_cols<<<nbl, nchan>>>(G_cols.d, G_cols0.d, G_chan.d, shift.d, 
             itime, nchan, nnz, ntime);
 
+    cusparseStatus_t rv;
     rv = cusparseCcsrmv(sparse, CUSPARSE_OPERATION_NON_TRANSPOSE,
             nrow(), ncol()*ntime, nnz, &h_one, descr,
             G_vals.d, G_rows.d, G_cols.d,
