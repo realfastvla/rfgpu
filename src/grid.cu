@@ -12,7 +12,7 @@
 #include <cuComplex.h>
 #include <cusparse.h>
 
-#include "rfgpu.h"
+#include "grid.h"
 
 using namespace rfgpu;
 

@@ -7,12 +7,12 @@ namespace py = pybind11;
 #include <cuda.h>
 
 #include "array.h"
-#include "rfgpu.h"
+#include "grid.h"
 namespace rf = rfgpu;
 
 typedef rf::Array<rf::cdata,true> GPUArrayComplex;
 
-PYBIND11_MODULE(rfgpu_py, m) {
+PYBIND11_MODULE(rfgpu, m) {
     // Note, get a numpy array view into the databuf like:
     // a = rfgpu_py.GPUArrayComplex()
     // aa = numpy.array(a,copy=False)

@@ -1,5 +1,5 @@
 
-all: rfgpu_py.so
+all: rfgpu.so
 
 clean: 
 	rm -f *.o *.so
@@ -17,6 +17,6 @@ NVCC = nvcc -g -ccbin /opt/local/compilers/gcc-5/bin/gcc
 	$(NVCC) --compiler-options -fPIC -c $(CUDA_INC) $< -o $@
 
 PY_INC = -I /usr/local/stow/python-2.7.10/include/python2.7 -I /users/pdemores/src/pybind11-2.2.1/include
-rfgpu_py.so: rfgpu_py.C rfgpu.o
+rfgpu.so: rfgpu.C grid.o
 	/opt/local/compilers/gcc-5/bin/g++ -shared -static-libstdc++ -std=c++11 -fPIC \
-		$(PY_INC) $(CUDA_INC) $< -o $@ rfgpu.o $(CUDA_LIB)
+		$(PY_INC) $(CUDA_INC) $< -o $@ grid.o $(CUDA_LIB)
