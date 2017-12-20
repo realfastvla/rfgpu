@@ -53,24 +53,24 @@ void Grid::allocate() {
     shift.resize(nchan);
 }
 
-void Grid::set_uv(float *_u, float *_v) {
+void Grid::set_uv(const std::vector<float> &_u, const std::vector<float> &_v) {
     for (int i=0; i<nbl; i++) {
         u[i] = _u[i];
         v[i] = _v[i];
     }
 }
 
-void Grid::set_freq(float *_freq) {
+void Grid::set_freq(const std::vector<float> &_freq) {
     for (int i=0; i<nchan; i++) { freq[i] = _freq[i]; }
 }
 
-void Grid::set_shift(int *_shift) {
+void Grid::set_shift(const std::vector<int> &_shift) {
     maxshift=0;
     for (int i=0; i<nchan; i++) {
         if (_shift[i]>maxshift) { maxshift=_shift[i]; }
     }
     if (maxshift>ntime) { } // TODO raise error
-    cudaMemcpy(shift.d, _shift, shift.size(), cudaMemcpyHostToDevice);
+    cudaMemcpy(shift.d, _shift.data(), shift.size(), cudaMemcpyHostToDevice);
 }
 
 void Grid::compute() {

@@ -24,12 +24,17 @@ namespace rfgpu {
             ~Grid();
 
             void compute(); // compute/sort gridding matrix
+            void operate(Array<cdata,true> &in, Array<cdata,true> &out, 
+                    int itime) { operate(in.d, out.d, itime); };
             void operate(cdata *in, cdata *out, int itime);
 
             void set_cell(float size) { cell = size; }; 
-            void set_uv(float *u, float *v);
-            void set_freq(float *freq);
-            void set_shift(int *shift);
+            // TODO use std::vector or whatever is more compatible
+            // with wrapping for python
+            void set_uv(const std::vector<float> &u, 
+                    const std::vector<float> &v);
+            void set_freq(const std::vector<float> &freq);
+            void set_shift(const std::vector<int> &shift);
 
         protected:
 
