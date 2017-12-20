@@ -1,5 +1,5 @@
 
-all:
+all: rfgpu_py.so
 
 clean: 
 	rm -f *.o gridtest
@@ -14,4 +14,9 @@ CUDA_LIB = -L $(CUDA_DIR)/lib64 -lcufft -lcusparse -lnvToolsExt -lcuda -lcudart 
 NVCC = nvcc -g -ccbin /opt/local/compilers/gcc-5/bin/gcc
 
 %.o : %.cu %.h
-	$(NVCC) -c $(CUDA_INC) $< -o $@
+	$(NVCC) --compiler-options -fPIC -c $(CUDA_INC) $< -o $@
+
+PY_INC = -I /usr/local/stow/python-2.7.10/include/python2.7 -I /users/pdemores/src/pybind11-2.2.1/include
+rfgpu_py.so: rfgpu_py.C rfgpu.o
+	/opt/local/compilers/gcc-5/bin/g++ -shared -static-libstdc++ -std=c++11 -fPIC \
+		$(PY_INC) $(CUDA_INC) $< rfgpu.o $(CUDA_LIB) -o $@
