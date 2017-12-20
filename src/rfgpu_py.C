@@ -10,9 +10,12 @@ namespace py = pybind11;
 #include "rfgpu.h"
 namespace rf = rfgpu;
 
-typedef rf::Array<cuComplex,true> GPUArrayComplex;
+typedef rf::Array<rf::cdata,true> GPUArrayComplex;
 
 PYBIND11_MODULE(rfgpu_py, m) {
+    // Note, get a numpy array view into the databuf like:
+    // a = rfgpu_py.GPUArrayComplex()
+    // aa = numpy.array(a,copy=False)
     py::class_<GPUArrayComplex>(m, "GPUArrayComplex", py::buffer_protocol())
         .def(py::init())
         .def("resize", &GPUArrayComplex::resize)
@@ -22,13 +25,20 @@ PYBIND11_MODULE(rfgpu_py, m) {
         .def_buffer([](GPUArrayComplex &m) -> py::buffer_info {
                 return py::buffer_info(
                         m.h,
-                        sizeof(cuComplex),
+                        sizeof(rf::cdata),
                         py::format_descriptor<std::complex<float>>::format(),
                         1,
                         { m.len(), },
-                        { sizeof(cuComplex), }
+                        { sizeof(rf::cdata), }
                 );
             });
 
+    py::class_<rf::Grid>(m, "Grid")
+        .def(py::init<int,int,int,int,int>())
+        .def("set_uv", &rf::Grid::set_uv)
+        .def("set_freq", &rf::Grid::set_freq)
+        .def("set_shift", &rf::Grid::set_shift)
+        .def("set_cell", &rf::Grid::set_cell)
+        .def("compute", &rf::Grid::compute);
 
 }
