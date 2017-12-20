@@ -1,5 +1,5 @@
-#ifndef _RFGPU_H
-#define _RFGPU_H
+#ifndef _GRID_H
+#define _GRID_H
 
 #include <vector>
 
@@ -69,24 +69,6 @@ namespace rfgpu {
             // Constant values to pass to matrix routines
             float2 h_one;
             float2 h_zero;
-    };
-
-    class Image
-    {
-        public:
-            Image();
-            ~Image();
-
-            void setup();
-            void operate(cufftComplex *vis, cufftReal *img);
-
-            int vispix() const { return ((ypix/2)+1) * xpix; }
-            int imgpix() const { return xpix*ypix; }
-
-            int xpix; // Number of image pixels
-            int ypix; // Numer of image pixels
-
-            cufftHandle plan;
     };
 
 }

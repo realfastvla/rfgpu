@@ -156,20 +156,3 @@ void Grid::operate(cdata *in, cdata *out, int itime) {
     check_rv("cusparseCcsrmv");
 }
 
-Image::Image() {
-    plan = NULL; 
-    xpix = ypix = 0;
-}
-
-Image::~Image() {
-    if (plan) cufftDestroy(plan);
-}
-
-void Image::setup() {
-    cufftPlan2d(&plan, xpix, ypix, CUFFT_C2R); // TODO check for error
-}
-
-void Image::operate(cufftComplex *vis, cufftReal *img) {
-    cufftExecC2R(plan, vis, img);
-}
-
