@@ -1,11 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <time.h>
 
-#include <vector>
-#include <algorithm>
+#include <stdexcept>
 
 #include <cuda.h>
 #include <cufft.h>
@@ -16,7 +12,7 @@
 using namespace rfgpu;
 
 Image::Image() {
-    plan = NULL; 
+    plan = 0;
     xpix = ypix = 0;
 }
 
@@ -25,10 +21,22 @@ Image::~Image() {
 }
 
 void Image::setup() {
-    cufftPlan2d(&plan, xpix, ypix, CUFFT_C2R); // TODO check for error
+    cufftResult_t rv;
+    rv = cufftPlan2d(&plan, xpix, ypix, CUFFT_C2R);
+    if (rv != CUFFT_SUCCESS) {
+        char msg[1024];
+        sprintf(msg, "Image::setup error planning FFT (%d)", rv);
+        throw std::runtime_error(msg);
+    }
 }
 
 void Image::operate(cufftComplex *vis, cufftReal *img) {
-    cufftExecC2R(plan, vis, img);
+    cufftResult_t rv;
+    rv = cufftExecC2R(plan, vis, img);
+    if (rv != CUFFT_SUCCESS) {
+        char msg[1024];
+        sprintf(msg, "Image::operate error executing FFT (%d)", rv);
+        throw std::runtime_error(msg);
+    }
 }
 

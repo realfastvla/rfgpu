@@ -6,7 +6,6 @@
 #include <cuda.h>
 #include <cuComplex.h>
 #include <cufft.h>
-#include <cusparse.h>
 
 #include "array.h"
 
