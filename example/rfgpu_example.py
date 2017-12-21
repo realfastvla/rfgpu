@@ -25,6 +25,7 @@ img_grid = rfgpu.GPUArrayReal(npix*npix)
 grid.set_uv(uv[:,0], uv[:,1]) # u, v in us
 grid.set_freq(np.linspace(1000.0,2000.0,nchan)) # freq in MHz
 grid.set_shift(np.zeros(nchan,dtype=int)) # dispersion shift per chan in samples
+grid.set_cell(80.0) # uv cell size in wavelengths (== 1/FoV(radians))
 
 # Compute gridding transform
 grid.compute()
