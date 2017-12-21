@@ -116,9 +116,8 @@ void Grid::compute() {
             int x = round((u[ibl]*freq[ichan])/cell);
             int y = round((v[ibl]*freq[ichan])/cell); 
             if (y<0) { y*=-1; x*=-1; } // TODO need to conjugate data too...
-            if (x>upix/2) { x += upix; }
-            if (x<0) { x += upix; }
-            if (x<upix && x>=0 && y<vpix && y>=0) {
+            if (x<=upix/2 && x>=-upix/2 && y<vpix && y>=0) {
+                if (x<0) x += upix;
                 G_pix.h[nnz] = y*upix + x;
                 G_cols0.h[nnz] = ibl*nchan + ichan;
                 nnz++;
