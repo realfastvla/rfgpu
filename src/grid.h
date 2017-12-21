@@ -53,11 +53,12 @@ namespace rfgpu {
             std::vector<float> v; // us
             std::vector<float> freq; // MHz
 
-            // All these point to GPU memory:
-            Array<cdata> G_vals;  // Values of gridding matrix G (nnz)
-            Array<int> G_rows;    // Row indices, CSR format (nrow+1)
+            // All these point to GPU memory.  If true arg is present,
+            // a copy exists in host memory also.
+            Array<cdata,true> G_vals;  // Values of gridding matrix G (nnz)
+            Array<int,true> G_rows;    // Row indices, CSR format (nrow+1)
             Array<int> G_cols;    // Column indices, CSR (nnz)
-            Array<int> G_chan;    // Channel index of each entry (nnz)
+            Array<int,true> G_chan;    // Channel index of each entry (nnz)
             Array<int,true> G_cols0;   // Base column indices (nnz)
             Array<int,true> G_pix;     // pixel index of each entry (nnz)
             Array<int> shift;     // Time shift to apply per channel (nchan)

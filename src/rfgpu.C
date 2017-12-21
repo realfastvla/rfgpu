@@ -18,6 +18,7 @@ PYBIND11_MODULE(rfgpu, m) {
     // aa = numpy.array(a,copy=False)
     py::class_<GPUArrayComplex>(m, "GPUArrayComplex", py::buffer_protocol())
         .def(py::init())
+        .def(py::init<unsigned>())
         .def("resize", &GPUArrayComplex::resize)
         .def("len", &GPUArrayComplex::len)
         .def("h2d", &GPUArrayComplex::h2d)
@@ -39,6 +40,8 @@ PYBIND11_MODULE(rfgpu, m) {
         .def("set_freq", &rf::Grid::set_freq)
         .def("set_shift", &rf::Grid::set_shift)
         .def("set_cell", &rf::Grid::set_cell)
-        .def("compute", &rf::Grid::compute);
-
+        .def("compute", &rf::Grid::compute)
+        .def("operate", 
+                (void (rf::Grid::*)(GPUArrayComplex&, GPUArrayComplex&, int)) 
+                &rf::Grid::operate);
 }

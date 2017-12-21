@@ -56,6 +56,7 @@ void Grid::allocate() {
     G_cols.resize(ncol());
     G_cols0.resize(ncol());
     G_chan.resize(ncol());
+    G_pix.resize(ncol());
 
     shift.resize(nchan);
 }
@@ -159,15 +160,15 @@ void Grid::compute() {
     G_vals.h2d();
 
     // retrieve channel idx of each data point
-    G_cols.d2h();
-    for (int i=0; i<nnz; i++) { G_chan.h[i] = G_cols.h[i] % nchan; }
+    G_cols0.d2h();
+    for (int i=0; i<nnz; i++) { G_chan.h[i] = G_cols0.h[i] % nchan; }
     G_chan.h2d();
 }
 
 __global__ void adjust_cols(int *ocol, int *icol, int *chan,
         int *shift, int itime, int nchan, int nnz, int ntime) {
     const int ii = blockDim.x*blockIdx.x + threadIdx.x;
-    __shared__ int lshift[2048]; // max nchan=2048
+    __shared__ int lshift[2048]; // max nchan=2048 TODO 
     for (int i=threadIdx.x; i<nchan; i+=blockDim.x) {
         lshift[i] = shift[i];
     }
