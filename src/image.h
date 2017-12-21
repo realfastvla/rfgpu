@@ -17,11 +17,15 @@ namespace rfgpu {
     class Image
     {
         public:
-            Image();
+            Image(int xpix, int ypix);
             ~Image();
 
+            void operate(Array<cdata,true> &vis, Array<rdata,true> &img);
+
+            void operate(cdata *vis, rdata *img);
+
+        protected:
             void setup();
-            void operate(cufftComplex *vis, cufftReal *img);
 
             int vispix() const { return ((ypix/2)+1) * xpix; }
             int imgpix() const { return xpix*ypix; }
