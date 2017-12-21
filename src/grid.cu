@@ -118,7 +118,7 @@ void Grid::compute() {
             if (y<0) { y*=-1; x*=-1; } // TODO need to conjugate data too...
             if (x<=upix/2 && x>=-upix/2 && y<vpix && y>=0) {
                 if (x<0) x += upix;
-                G_pix.h[nnz] = y*upix + x;
+                G_pix.h[nnz] = x*vpix + y;
                 G_cols0.h[nnz] = ibl*nchan + ichan;
                 nnz++;
             } 
