@@ -23,6 +23,6 @@ OBJS = grid.o image.o
 		-c $(CUDA_INC) $< -o $@
 
 rfgpu.so: rfgpu.C $(OBJS)
-	$(CXX) -shared -static-libstdc++ -std=c++11 -fPIC \
+	$(CXX) -shared -std=c++11 -fPIC \
 		$(PY_INC) $(PYBIND_INC) $(CUDA_INC) \
 		$< -o $@ $(OBJS) $(CUDA_LIB)
