@@ -151,12 +151,14 @@ void Grid::compute() {
             CUSPARSE_INDEX_BASE_ZERO);
     cusparse_check_rv("cusparseXcoo2csr");
 
-    // Fill in normalization factors (number of vis per grid point)
-    // TODO maybe these should just be set to 1.0?
+    // Fill in normalization factors
     G_rows.d2h();
     for (int i=0; i<nrow(); i++) {
         for (int j=G_rows.h[i]; j<G_rows.h[i+1]; j++) {
-            G_vals.h[j].x = 1.0/((float)G_rows.h[i+1] - (float)G_rows.h[i]);
+            // This is something like uniform weighting:
+            //G_vals.h[j].x = 1.0/((float)G_rows.h[i+1] - (float)G_rows.h[i]);
+            // This is natural weighting:
+            G_vals.h[j].x = 1.0;
             G_vals.h[j].y = 0.0;
         }
     }
