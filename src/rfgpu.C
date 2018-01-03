@@ -3,6 +3,7 @@
 #include <pybind11/numpy.h>
 namespace py = pybind11;
 
+#include <vector>
 #include <complex>
 #include <cuda.h>
 
@@ -15,13 +16,11 @@ typedef rf::Array<rf::cdata,true> GPUArrayComplex;
 typedef rf::Array<rf::rdata,true> GPUArrayReal;
 
 PYBIND11_MODULE(rfgpu, m) {
-    // Note, get a numpy array view into the databuf like:
-    // a = rfgpu_py.GPUArrayComplex()
-    // aa = numpy.array(a,copy=False)
-    
+
     py::class_<GPUArrayComplex>(m, "GPUArrayComplex")
         .def(py::init())
         .def(py::init<unsigned>())
+        .def(py::init<std::vector<unsigned>>())
         .def("resize", &GPUArrayComplex::resize)
         .def("len", &GPUArrayComplex::len)
         .def("h2d", &GPUArrayComplex::h2d)
@@ -29,8 +28,7 @@ PYBIND11_MODULE(rfgpu, m) {
         .def_property_readonly("data", [](py::object &obj) {
                 GPUArrayComplex &a = obj.cast<GPUArrayComplex&>();
                 return py::array_t<std::complex<float>>(
-                        { a.len(), },
-                        { sizeof(rf::cdata), },
+                        a.dims(),
                         (std::complex<float> *)a.h,
                         obj
                         );
@@ -46,8 +44,7 @@ PYBIND11_MODULE(rfgpu, m) {
         .def_property_readonly("data", [](py::object &obj) {
                 GPUArrayReal &a = obj.cast<GPUArrayReal&>();
                 return py::array_t<float>(
-                        { a.len(), },
-                        { sizeof(rf::rdata), },
+                        a.dims(),
                         (float *)a.h,
                         obj
                         );
