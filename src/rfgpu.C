@@ -19,49 +19,39 @@ PYBIND11_MODULE(rfgpu, m) {
     // a = rfgpu_py.GPUArrayComplex()
     // aa = numpy.array(a,copy=False)
     
-    py::class_<GPUArrayComplex>(m, "GPUArrayComplex", py::buffer_protocol())
+    py::class_<GPUArrayComplex>(m, "GPUArrayComplex")
         .def(py::init())
         .def(py::init<unsigned>())
         .def("resize", &GPUArrayComplex::resize)
         .def("len", &GPUArrayComplex::len)
         .def("h2d", &GPUArrayComplex::h2d)
         .def("d2h", &GPUArrayComplex::d2h)
-        // This is close but not quite working:
-        //.def("data", [](GPUArrayComplex &m) {
-        //        return py::array_t<std::complex<float>>(
-        //                { m.len(), },
-        //                { 1, },
-        //                (std::complex<float> *)m.h
-        //                );
-        //        })
-        .def_buffer([](GPUArrayComplex &m) -> py::buffer_info {
-                return py::buffer_info(
-                        m.h,
-                        sizeof(rf::cdata),
-                        py::format_descriptor<std::complex<float>>::format(),
-                        1,
-                        { m.len(), },
-                        { sizeof(rf::cdata), }
-                );
-            });
+        .def_property_readonly("data", [](py::object &obj) {
+                GPUArrayComplex &a = obj.cast<GPUArrayComplex&>();
+                return py::array_t<std::complex<float>>(
+                        { a.len(), },
+                        { sizeof(rf::cdata), },
+                        (std::complex<float> *)a.h,
+                        obj
+                        );
+                });
 
-    py::class_<GPUArrayReal>(m, "GPUArrayReal", py::buffer_protocol())
+    py::class_<GPUArrayReal>(m, "GPUArrayReal")
         .def(py::init())
         .def(py::init<unsigned>())
         .def("resize", &GPUArrayReal::resize)
         .def("len", &GPUArrayReal::len)
         .def("h2d", &GPUArrayReal::h2d)
         .def("d2h", &GPUArrayReal::d2h)
-        .def_buffer([](GPUArrayReal &m) -> py::buffer_info {
-                return py::buffer_info(
-                        m.h,
-                        sizeof(rf::rdata),
-                        py::format_descriptor<float>::format(),
-                        1,
-                        { m.len(), },
-                        { sizeof(rf::rdata), }
-                );
-            });
+        .def_property_readonly("data", [](py::object &obj) {
+                GPUArrayReal &a = obj.cast<GPUArrayReal&>();
+                return py::array_t<float>(
+                        { a.len(), },
+                        { sizeof(rf::rdata), },
+                        (float *)a.h,
+                        obj
+                        );
+                });
 
     py::class_<rf::Grid>(m, "Grid")
         .def(py::init<int,int,int,int,int>())

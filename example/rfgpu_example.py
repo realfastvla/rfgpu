@@ -31,8 +31,7 @@ grid.set_cell(80.0) # uv cell size in wavelengths (== 1/FoV(radians))
 grid.compute()
 
 # Generate some random visibility data
-vis_data = np.array(vis_raw,copy=False)
-vis_data[:] = np.random.randn(vis_raw.len()) \
+vis_raw.data[:] = np.random.randn(vis_raw.len()) \
         + 1.0j*np.random.randn(vis_raw.len()) \
         + 0.5  # Point source at phase center
 vis_raw.h2d()  # Send it to GPU memory
@@ -45,5 +44,5 @@ image.operate(vis_grid, img_grid)
 
 # Get image back from GPU
 img_grid.d2h()
-img_data = np.array(img_grid,copy=False).reshape((npix,npix))
+img_data = img_grid.data.reshape((npix,npix))
 img_data = fftshift(img_data) # put center pixel in middle of image
