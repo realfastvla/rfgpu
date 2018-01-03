@@ -17,9 +17,9 @@ grid = rfgpu.Grid(nbl, nchan, ntime, upix, vpix)
 image = rfgpu.Image(npix,npix)
 
 # Data buffers on GPU
-vis_raw = rfgpu.GPUArrayComplex(nbl*nchan*ntime)
-vis_grid = rfgpu.GPUArrayComplex(upix*vpix)
-img_grid = rfgpu.GPUArrayReal(npix*npix)
+vis_raw = rfgpu.GPUArrayComplex((nbl,nchan,ntime))
+vis_grid = rfgpu.GPUArrayComplex((upix,vpix))
+img_grid = rfgpu.GPUArrayReal((npix,npix))
 
 # Send uv params
 grid.set_uv(uv[:,0], uv[:,1]) # u, v in us
@@ -31,8 +31,8 @@ grid.set_cell(80.0) # uv cell size in wavelengths (== 1/FoV(radians))
 grid.compute()
 
 # Generate some random visibility data
-vis_raw.data[:] = np.random.randn(vis_raw.len()) \
-        + 1.0j*np.random.randn(vis_raw.len()) \
+vis_raw.data[:] = np.random.randn(*vis_raw.data.shape) \
+        + 1.0j*np.random.randn(*vis_raw.data.shape) \
         + 0.5  # Point source at phase center
 vis_raw.h2d()  # Send it to GPU memory
 
@@ -44,5 +44,4 @@ image.operate(vis_grid, img_grid)
 
 # Get image back from GPU
 img_grid.d2h()
-img_data = img_grid.data.reshape((npix,npix))
-img_data = fftshift(img_data) # put center pixel in middle of image
+img_data = fftshift(img_grid.data) # put center pixel in middle of image
