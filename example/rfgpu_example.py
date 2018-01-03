@@ -3,7 +3,7 @@ from numpy.fft import fftshift
 import rfgpu
 
 # B-config uv points
-uv = np.loadtxt('uv_B.dat')
+uv = np.loadtxt('uv_B_signed.dat')
 
 nbl = uv.shape[0]
 nchan = 32
@@ -44,6 +44,9 @@ vl = np.outer(uv[:,1],freq)
 vis_raw.data[:,:,1] += 0.5 * np.exp(-2.0j*np.pi*(dx*ul + dy*vl))
 
 vis_raw.h2d()  # Send it to GPU memory
+
+# Conjugate vis data as needed (on GPU); only do once 
+grid.conjugate(vis_raw)
 
 # Run gridding on time slice 0 of data array
 grid.operate(vis_raw, vis_grid, 0)

@@ -24,6 +24,7 @@ namespace rfgpu {
             ~Grid() {};
 
             void compute(); // compute/sort gridding matrix
+            void conjugate(Array<cdata,true> &data);
             void operate(Array<cdata,true> &in, Array<cdata,true> &out, 
                     int itime);
             void operate(cdata *in, cdata *out, int itime);
@@ -61,7 +62,8 @@ namespace rfgpu {
             Array<int,true> G_chan;    // Channel index of each entry (nnz)
             Array<int,true> G_cols0;   // Base column indices (nnz)
             Array<int,true> G_pix;     // pixel index of each entry (nnz)
-            Array<int> shift;     // Time shift to apply per channel (nchan)
+            Array<int> shift;       // Time shift to apply per channel (nchan)
+            Array<int,true> conj;   // True if baseline needs a conjugate (nbl)
             int maxshift;
 
             cusparseHandle_t sparse;
