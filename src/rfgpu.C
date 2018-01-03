@@ -37,6 +37,7 @@ PYBIND11_MODULE(rfgpu, m) {
     py::class_<GPUArrayReal>(m, "GPUArrayReal")
         .def(py::init())
         .def(py::init<unsigned>())
+        .def(py::init<std::vector<unsigned>>())
         .def("resize", &GPUArrayReal::resize)
         .def("len", &GPUArrayReal::len)
         .def("h2d", &GPUArrayReal::h2d)
