@@ -10,7 +10,7 @@ CUDA_DIR = /opt/nvidia/cuda
 CUDA_INC = -I $(CUDA_DIR)/include -DUNIX
 CUDA_LIB = -L $(CUDA_DIR)/lib64 -lcufft -lcusparse -lnvToolsExt -lcuda -lcudart -lGL -lGLU $(MISC_LIB)
 
-PY_INC = -I /usr/local/stow/python-2.7.10/include/python2.7
+PY_INC = -I /home/cbe-master/realfast/anaconda/envs/development/include/python2.7
 PYBIND_INC = -I /users/pdemores/src/pybind11-2.2.1/include
 
 CXX = /opt/local/compilers/gcc-5/bin/g++
@@ -23,6 +23,6 @@ OBJS = grid.o image.o
 		-c $(CUDA_INC) $< -o $@
 
 rfgpu.so: rfgpu.C $(OBJS)
-	$(CXX) -shared -static-libstdc++ -std=c++11 -fPIC \
+	$(CXX) -shared -std=c++11 -fPIC \
 		$(PY_INC) $(PYBIND_INC) $(CUDA_INC) \
 		$< -o $@ $(OBJS) $(CUDA_LIB)
