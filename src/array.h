@@ -1,6 +1,7 @@
 #ifndef _ARRAY_H
 #define _ARRAY_H
 
+#include <vector>
 #include <stdexcept>
 
 #include <cuda.h>
@@ -25,10 +26,12 @@ namespace rfgpu {
         public:
             Array();
             Array(unsigned len);
+            Array(std::vector<unsigned> dims);
             ~Array();
             void resize(unsigned len);
             size_t size() const { return sizeof(T)*_len; }
             int len() const { return _len; }
+            std::vector<unsigned> dims() const { return _dims; }
             T *h; // Pointer to data on host
             T *d; // Pointer to data on gpu
             void h2d(); // Copy data from host to device
@@ -36,6 +39,7 @@ namespace rfgpu {
             void init(T val); // Only on host
         protected:
             unsigned _len;
+            std::vector<unsigned> _dims;
     };
 
     template <class T, bool host>
@@ -53,8 +57,20 @@ namespace rfgpu {
     }
 
     template <class T, bool host>
+    Array<T,host>::Array(std::vector<unsigned> dims) { 
+        h = NULL;
+        d = NULL;
+        unsigned len = dims[0];
+        for (unsigned i=1; i<dims.size(); i++) { len *= dims[i]; }
+        resize(len); 
+        _dims = dims;
+    }
+
+    template <class T, bool host>
     void Array<T,host>::resize(unsigned len) {
         _len = len;
+        _dims.resize(1);
+        _dims[0] = len;
         if (d) CUDA_ERROR_CHECK(cudaFree(d));
         cudaMalloc((void**)&d, size());
         if (host) {

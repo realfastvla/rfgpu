@@ -59,6 +59,7 @@ void Grid::allocate() {
     G_pix.resize(ncol());
 
     shift.resize(nchan);
+    conj.resize(nbl);
 }
 
 void Grid::set_uv(const std::vector<float> &_u, const std::vector<float> &_v) {
@@ -115,7 +116,8 @@ void Grid::compute() {
         for (int ichan=0; ichan<nchan; ichan++) {
             int x = round((u[ibl]*freq[ichan])/cell);
             int y = round((v[ibl]*freq[ichan])/cell); 
-            if (y<0) { y*=-1; x*=-1; } // TODO need to conjugate data too...
+            if (y<0) { y*=-1; x*=-1; conj.h[ibl]=1; }
+            else { conj.h[ibl]=0; }
             if (x<=upix/2 && x>=-upix/2 && y<vpix && y>=0) {
                 if (x<0) x += upix;
                 G_pix.h[nnz] = x*vpix + y;
@@ -126,6 +128,7 @@ void Grid::compute() {
     }
     G_pix.h2d();
     G_cols0.h2d();
+    conj.h2d();
 
     cusparseStatus_t rv;
 
@@ -148,11 +151,14 @@ void Grid::compute() {
             CUSPARSE_INDEX_BASE_ZERO);
     cusparse_check_rv("cusparseXcoo2csr");
 
-    // Fill in normalization factors (number of vis per grid point)
+    // Fill in normalization factors
     G_rows.d2h();
     for (int i=0; i<nrow(); i++) {
         for (int j=G_rows.h[i]; j<G_rows.h[i+1]; j++) {
-            G_vals.h[j].x = 1.0/((float)G_rows.h[i+1] - (float)G_rows.h[i]);
+            // This is something like uniform weighting:
+            //G_vals.h[j].x = 1.0/((float)G_rows.h[i+1] - (float)G_rows.h[i]);
+            // This is natural weighting:
+            G_vals.h[j].x = 1.0;
             G_vals.h[j].y = 0.0;
         }
     }
@@ -162,6 +168,21 @@ void Grid::compute() {
     G_cols0.d2h();
     for (int i=0; i<nnz; i++) { G_chan.h[i] = G_cols0.h[i] % nchan; }
     G_chan.h2d();
+}
+
+// Call with nbl thread blocks
+__global__ void conjugate_data(cdata *dat, int *conj, int nchan, int ntime) {
+    const int ibl = blockIdx.x;
+    const int offs = ibl*nchan*ntime;
+    if (conj[ibl]) { 
+        for (int i=threadIdx.x; i<nchan*ntime; i+=blockDim.x) {
+            dat[offs+i].y *= -1.0;
+        }
+    }
+}
+
+void Grid::conjugate(Array<cdata,true> &data) {
+    conjugate_data<<<nbl,512>>>(data.d, conj.d, nchan, ntime);
 }
 
 __global__ void adjust_cols(int *ocol, int *icol, int *chan,
