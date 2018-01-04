@@ -34,7 +34,7 @@ grid.compute()
 # Generate some visibility data
 vis_raw.data[:] = np.random.randn(*vis_raw.data.shape) \
         + 1.0j*np.random.randn(*vis_raw.data.shape) \
-        + 0.5  # Point source at phase center
+        + 0.0  # Point source at phase center
 
 # Add a point source somewhere else, only in time slice 1
 dx = 10.0/60.0 * np.pi/180.0
@@ -63,4 +63,14 @@ grid.operate(vis_raw, vis_grid, 1)
 image.operate(vis_grid, img_grid)
 img_grid.d2h()
 img_data1 = fftshift(img_grid.data)
+
+# Image all time slices, get back rms and max value for each
+img_rms = np.zeros(ntime)
+img_max = np.zeros(ntime)
+for i in range(ntime):
+    grid.operate(vis_raw,vis_grid,i)
+    image.operate(vis_grid,img_grid)
+    s = image.stats(img_grid)
+    img_rms[i] = np.sqrt(s[0])/npix
+    img_max[i] = s[1]
 

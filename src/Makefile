@@ -7,7 +7,7 @@ clean:
 MISC_LIB = -lm
 
 CUDA_DIR = /opt/nvidia/cuda
-CUDA_INC = -I $(CUDA_DIR)/include -DUNIX
+CUDA_INC = -I $(CUDA_DIR)/include -DUNIX -I /users/pdemores/gpu/src/cub-1.7.4
 CUDA_LIB = -L $(CUDA_DIR)/lib64 -lcufft -lcusparse -lnvToolsExt -lcuda -lcudart -lGL -lGLU $(MISC_LIB)
 
 PY_INC = -I /usr/local/stow/python-2.7.10/include/python2.7

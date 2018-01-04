@@ -69,5 +69,9 @@ PYBIND11_MODULE(rfgpu, m) {
         .def(py::init<int,int>())
         .def("operate",
                 (void (rf::Image::*)(GPUArrayComplex&, GPUArrayReal&))
-                &rf::Image::operate);
+                &rf::Image::operate)
+        .def("stats", 
+                (std::vector<double> (rf::Image::*)(GPUArrayReal &))
+                 &rf::Image::stats);
+
 }

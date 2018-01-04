@@ -21,8 +21,9 @@ namespace rfgpu {
             ~Image();
 
             void operate(Array<cdata,true> &vis, Array<rdata,true> &img);
-
             void operate(cdata *vis, rdata *img);
+
+            std::vector<double> stats(Array<rdata,true> &img);
 
         protected:
             void setup();
@@ -34,6 +35,15 @@ namespace rfgpu {
             int ypix; // Numer of image pixels
 
             cufftHandle plan;
+
+            void rms(Array<rdata,true> &img);
+            void max(Array<rdata,true> &img);
+
+            size_t tmp_bytes_max, tmp_bytes_sum;
+            Array<char> tmp_max;
+            Array<char> tmp_sum;
+            Array<double,true> _stats;
+
     };
 
 }
