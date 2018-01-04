@@ -10,7 +10,7 @@ CUDA_DIR = /opt/nvidia/cuda
 CUDA_INC = -I $(CUDA_DIR)/include -DUNIX -I /users/pdemores/gpu/src/cub-1.7.4
 CUDA_LIB = -L $(CUDA_DIR)/lib64 -lcufft -lcusparse -lnvToolsExt -lcuda -lcudart -lGL -lGLU $(MISC_LIB)
 
-PY_INC = -I /home/cbe-master/realfast/anaconda/envs/development/include/python2.7
+PY_INC = -I $(shell python -c "import sysconfig; print sysconfig.get_paths()['include']")
 PYBIND_INC = -I /users/pdemores/src/pybind11-2.2.1/include
 
 CXX = /opt/local/compilers/gcc-5/bin/g++
