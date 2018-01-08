@@ -167,7 +167,7 @@ void Grid::compute() {
             // This is something like uniform weighting:
             //G_vals.h[j].x = 1.0/((float)G_rows.h[i+1] - (float)G_rows.h[i]);
             // This is natural weighting:
-            G_vals.h[j].x = 1.0;
+            G_vals.h[j].x = 1.0/(2.0*nnz);
             G_vals.h[j].y = 0.0;
         }
     }
