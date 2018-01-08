@@ -8,9 +8,10 @@ uv = np.loadtxt('uv_B_signed.dat')
 nbl = uv.shape[0]
 nchan = 128
 ntime = 256
-npix = 1024
-upix = npix
-vpix = npix/2 + 1
+xpix = 1024
+ypix = 2048
+upix = xpix
+vpix = ypix/2 + 1
 freq = np.linspace(1000.0,2000.0,nchan)
 dt = 5e-3
 ddm = 1.0
@@ -28,12 +29,12 @@ for idm in range(ndm):
 
 # Set up processing classes
 grid = rfgpu.Grid(nbl, nchan, ntime, upix, vpix)
-image = rfgpu.Image(npix,npix)
+image = rfgpu.Image(xpix,ypix)
 
 # Data buffers on GPU
 vis_raw = rfgpu.GPUArrayComplex((nbl,nchan,ntime))
 vis_grid = rfgpu.GPUArrayComplex((upix,vpix))
-img_grid = rfgpu.GPUArrayReal((npix,npix))
+img_grid = rfgpu.GPUArrayReal((xpix,ypix))
 
 # Send uv params
 grid.set_uv(uv[:,0], uv[:,1]) # u, v in us
@@ -91,5 +92,5 @@ for idm in range(ndm):
         grid.operate(vis_raw,vis_grid,itime)
         image.operate(vis_grid,img_grid)
         s = image.stats(img_grid)
-        img_rms[idm,itime] = np.sqrt(s[0])/npix
+        img_rms[idm,itime] = np.sqrt(s[0]/(xpix*ypix))
         img_max[idm,itime] = s[1]
