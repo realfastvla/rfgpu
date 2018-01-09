@@ -2,6 +2,10 @@ import numpy as np
 from numpy.fft import fftshift
 import rfgpu
 
+# Select which GPU to use; this must be done before calling any other
+# rfgpu functions.
+rfgpu.cudaSetDevice(0)
+
 # B-config uv points
 uv = np.loadtxt('uv_B_signed.dat')
 
