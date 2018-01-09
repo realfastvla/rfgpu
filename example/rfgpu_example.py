@@ -96,5 +96,5 @@ for idm in range(ndm):
         grid.operate(vis_raw,vis_grid,itime)
         image.operate(vis_grid,img_grid)
         s = image.stats(img_grid)
-        img_rms[idm,itime] = np.sqrt(s[0]/(xpix*ypix))
+        img_rms[idm,itime] = s[0]
         img_max[idm,itime] = s[1]

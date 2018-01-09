@@ -1,6 +1,7 @@
 #ifndef _IMAGE_H
 #define _IMAGE_H
 
+#include <string>
 #include <vector>
 
 #include <cuda.h>
@@ -14,6 +15,8 @@ namespace rfgpu {
     typedef cuComplex cdata; // complex data type
     typedef cufftReal rdata; // real data type
 
+    class ImageStatistic;
+
     class Image
     {
         public:
@@ -23,6 +26,8 @@ namespace rfgpu {
             void operate(Array<cdata,true> &vis, Array<rdata,true> &img);
             void operate(cdata *vis, rdata *img);
 
+            void add_stat(std::string name);
+            std::vector<std::string> stat_names() const;
             std::vector<double> stats(Array<rdata,true> &img);
 
         protected:
@@ -36,14 +41,55 @@ namespace rfgpu {
 
             cufftHandle plan;
 
-            void rms(Array<rdata,true> &img);
-            void max(Array<rdata,true> &img);
-
-            size_t tmp_bytes_max, tmp_bytes_sum;
-            Array<char> tmp_max;
-            Array<char> tmp_sum;
             Array<double,true> _stats;
 
+            std::vector<ImageStatistic *> stat_funcs;
+    };
+
+    class ImageStatistic
+    {
+        friend class Image;
+
+        public:
+            ImageStatistic(int xpix, int ypix, std::string name);
+            ~ImageStatistic() {};
+
+            virtual void operate(Array<rdata,true> &img, double *result) = 0;
+            virtual double finalize(double result) const { return result; }
+
+        protected:
+            virtual void setup();
+            virtual void calc_buffer_size() = 0;
+
+            int xpix; 
+            int ypix;
+
+            std::string name;
+
+            size_t tmp_bytes;  // Size of temp space on GPU
+            Array<char> tmp;   // Temp buffer on GPU
+    };
+
+    class ImageMax: public ImageStatistic
+    {
+        public:
+            ImageMax(int xpix, int ypix, std::string name="max") 
+                : ImageStatistic(xpix, ypix, name) {}
+            void operate(Array<rdata,true> &img, double *result);
+        protected:
+            void calc_buffer_size();
+    };
+
+    class ImageRMS: public ImageStatistic
+    {
+        public:
+            ImageRMS(int xpix, int ypix, std::string name="rms") 
+                : ImageStatistic(xpix, ypix, name) {}
+            void operate(Array<rdata,true> &img, double *result);
+            double finalize(double result) const 
+                { return sqrt(result/(double)(xpix*ypix)); }
+        protected:
+            void calc_buffer_size();
     };
 
 }
