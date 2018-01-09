@@ -37,9 +37,6 @@ void Image::setup() {
         sprintf(msg, "Image::setup error planning FFT (%d)", rv);
         throw std::runtime_error(msg);
     }
-
-    add_stat("rms");
-    add_stat("max");
 }
 
 void Image::operate(Array<cdata,true> &vis, Array<rdata,true> &img) {

@@ -35,6 +35,11 @@ for idm in range(ndm):
 grid = rfgpu.Grid(nbl, nchan, ntime, upix, vpix)
 image = rfgpu.Image(xpix,ypix)
 
+# Set up which statistics we want Image to compute during each call
+# to Image.stats()
+image.add_stat('rms')
+image.add_stat('max')
+
 # Data buffers on GPU
 vis_raw = rfgpu.GPUArrayComplex((nbl,nchan,ntime))
 vis_grid = rfgpu.GPUArrayComplex((upix,vpix))
@@ -96,5 +101,5 @@ for idm in range(ndm):
         grid.operate(vis_raw,vis_grid,itime)
         image.operate(vis_grid,img_grid)
         s = image.stats(img_grid)
-        img_rms[idm,itime] = s[0]
-        img_max[idm,itime] = s[1]
+        img_rms[idm,itime] = s['rms']
+        img_max[idm,itime] = s['max']

@@ -4,6 +4,8 @@
 namespace py = pybind11;
 
 #include <vector>
+#include <map>
+#include <string>
 #include <stdexcept>
 
 #include <complex>
@@ -86,8 +88,15 @@ PYBIND11_MODULE(rfgpu, m) {
         .def("operate",
                 (void (rf::Image::*)(GPUArrayComplex&, GPUArrayReal&))
                 &rf::Image::operate)
-        .def("stats", 
-                (std::vector<double> (rf::Image::*)(GPUArrayReal &))
-                 &rf::Image::stats);
+        .def("add_stat", &rf::Image::add_stat)
+        .def("stats", [](py::object &o, GPUArrayReal &img) {
+                rf::Image &i = o.cast<rf::Image&>();
+                std::vector<std::string> keys = i.stat_names();
+                std::vector<double> vals = i.stats(img);
+                std::map<std::string,double> result;
+                for (unsigned ii=0; ii<vals.size(); ii++)
+                    result[keys[ii]] = vals[ii];
+                return result;
+                });
 
 }
