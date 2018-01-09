@@ -4,6 +4,8 @@
 namespace py = pybind11;
 
 #include <vector>
+#include <stdexcept>
+
 #include <complex>
 #include <cuda.h>
 
@@ -15,7 +17,21 @@ namespace rf = rfgpu;
 typedef rf::Array<rf::cdata,true> GPUArrayComplex;
 typedef rf::Array<rf::rdata,true> GPUArrayReal;
 
+namespace rfgpu {
+    void cudaSetDevice(int device) {
+        cudaError_t rv;
+        rv = ::cudaSetDevice(device);
+        if (rv!=cudaSuccess) {
+            char msg[1024];
+            sprintf(msg, "cudaSetDevice returned %d", rv);
+            throw std::runtime_error(msg);
+        }
+    }
+}
+
 PYBIND11_MODULE(rfgpu, m) {
+
+    m.def("cudaSetDevice", &rf::cudaSetDevice);
 
     py::class_<GPUArrayComplex>(m, "GPUArrayComplex")
         .def(py::init())
