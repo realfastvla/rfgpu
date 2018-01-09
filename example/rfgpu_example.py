@@ -57,12 +57,16 @@ image.operate(vis_grid, img_grid)
 # Get image back from GPU
 img_grid.d2h()
 img_data0 = fftshift(img_grid.data) # put center pixel in middle of image
+print('img 0: max {0}, std {1}, peak {2}'
+      .format(img_data0.max(), img_data0.std(), np.where(img_data0 == img_data0.max())))
 
 # Image time slice 1, this should have two point sources
 grid.operate(vis_raw, vis_grid, 1)
 image.operate(vis_grid, img_grid)
 img_grid.d2h()
 img_data1 = fftshift(img_grid.data)
+print('img 1: max {0}, std {1}, peak {2}'
+      .format(img_data1.max(), img_data1.std(), np.where(img_data1 == img_data1.max())))
 
 # Image all time slices, get back rms and max value for each
 img_rms = np.zeros(ntime)
@@ -73,4 +77,5 @@ for i in range(ntime):
     s = image.stats(img_grid)
     img_rms[i] = np.sqrt(s[0])/npix
     img_max[i] = s[1]
-
+    print('img {0}: max {1}, std {2}'
+          .format(i, img_max[i], img_rms[i]))
