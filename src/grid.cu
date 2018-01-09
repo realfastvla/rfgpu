@@ -43,6 +43,8 @@ Grid::Grid(int _nbl, int _nchan, int _ntime, int _upix, int _vpix) {
 
     cell = 80.0; // 80 wavelengths == ~42' FoV
 
+    maxshift = 0;
+
     allocate();
 }
 
@@ -92,18 +94,25 @@ void Grid::set_shift(const std::vector<int> &_shift) {
                 _shift.size(), nchan);
         throw std::invalid_argument(msg);
     }
-    maxshift=0;
+    int _maxshift=0;
     for (int i=0; i<nchan; i++) {
-        if (_shift[i]>maxshift) { maxshift=_shift[i]; }
+        if (_shift[i]>_maxshift) { _maxshift=_shift[i]; }
+        if (_shift[i]<0) {
+            char msg[1024];
+            sprintf(msg, "Grid::set_shift negative shift not allowed "
+                    "(ichan=%d shift=%d)", i, _shift[i]);
+            throw std::invalid_argument(msg);
+        }
     }
-    if (maxshift>ntime) { 
+    if (_maxshift>ntime) { 
         char msg[1024];
         sprintf(msg, 
                 "Grid::set_shift max shift out of range (maxshift=%d ntime=%d)",
-                maxshift, ntime);
+                _maxshift, ntime);
         throw std::invalid_argument(msg);
     }
     cudaMemcpy(shift.d, _shift.data(), shift.size(), cudaMemcpyHostToDevice);
+    maxshift = _maxshift;
 }
 
 void Grid::compute() {
@@ -158,7 +167,7 @@ void Grid::compute() {
             // This is something like uniform weighting:
             //G_vals.h[j].x = 1.0/((float)G_rows.h[i+1] - (float)G_rows.h[i]);
             // This is natural weighting:
-            G_vals.h[j].x = 1.0;
+            G_vals.h[j].x = 1.0/(2.0*nnz);
             G_vals.h[j].y = 0.0;
         }
     }
@@ -215,7 +224,9 @@ void Grid::operate(Array<cdata,true> &in, Array<cdata,true> &out, int itime) {
 void Grid::operate(cdata *in, cdata *out, int itime) {
     if (itime>=ntime) {
         char msg[1024];
-        sprintf(msg, "Grid::operate itime (%d) >= ntime (%d)", itime, ntime);
+        sprintf(msg, 
+                "Grid::operate itime(%d)+maxshift(%d) >= ntime(%d)", 
+                itime, maxshift, ntime);
         throw std::invalid_argument(msg);
     }
 

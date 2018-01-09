@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include <vector>
+#include <string>
+#include <algorithm>
 #include <stdexcept>
 
 #include <cuda.h>
@@ -19,16 +22,12 @@ Image::Image(int _xpix, int _ypix) {
     xpix = _xpix;
     ypix = _ypix;
     setup();
-    _stats.resize(2);
 }
 
 Image::~Image() {
     if (plan) cufftDestroy(plan);
+    for (unsigned i=0; i<stat_funcs.size(); i++) delete stat_funcs[i];
 }
-
-struct fn_square {
-    __device__ double operator() (const rdata &x) const { return x*x; }
-};
 
 void Image::setup() {
     cufftResult_t rv;
@@ -38,19 +37,6 @@ void Image::setup() {
         sprintf(msg, "Image::setup error planning FFT (%d)", rv);
         throw std::runtime_error(msg);
     }
-
-    tmp_bytes_max=0;
-    cub::DeviceReduce::Max(NULL, tmp_bytes_max, 
-            (rdata *)NULL, _stats.d, imgpix());
-    tmp_max.resize(tmp_bytes_max);
-
-    tmp_bytes_sum=0;
-    cub::DeviceReduce::Sum(NULL, tmp_bytes_sum,
-            cub::TransformInputIterator<double, fn_square, rdata*>(
-                (rdata *)NULL, fn_square()),
-            _stats.d, imgpix());
-    tmp_sum.resize(tmp_bytes_sum);
-            
 }
 
 void Image::operate(Array<cdata,true> &vis, Array<rdata,true> &img) {
@@ -79,21 +65,71 @@ void Image::operate(cdata *vis, rdata *img) {
     }
 }
 
-void Image::rms(Array<rdata,true> &img) {
-    cub::TransformInputIterator<double, fn_square, rdata*> 
-        sqr(img.d, fn_square());
-    cub::DeviceReduce::Sum(tmp_sum.d, tmp_bytes_sum, sqr, 
-            _stats.d + 0, imgpix());
+void Image::add_stat(std::string name) {
+    if (name=="max") {
+        stat_funcs.push_back(new ImageMax(xpix,ypix,name));
+    } else if (name=="rms") {
+        stat_funcs.push_back(new ImageRMS(xpix,ypix,name));
+    } else {
+        char msg[1024];
+        sprintf(msg, "Image::add_stat unknown stat type '%s'", name.c_str());
+        throw std::runtime_error(msg);
+    }
+    _stats.resize(_stats.len() + 1);
+    stat_funcs.back()->setup();
 }
 
-void Image::max(Array<rdata,true> &img) {
-    cub::DeviceReduce::Max(tmp_max.d, tmp_bytes_max, img.d, 
-            _stats.d + 1, imgpix());
+std::vector<std::string> Image::stat_names() const {
+    std::vector<std::string> names;
+    for (unsigned i=0; i<stat_funcs.size(); i++) {
+        names.push_back(stat_funcs[i]->name);
+    }
+    return names;
 }
 
 std::vector<double> Image::stats(Array<rdata,true> &img) {
-    rms(img);
-    max(img);
+    for (unsigned i=0; i<stat_funcs.size(); i++)
+        stat_funcs[i]->operate(img, _stats.d + i);
     _stats.d2h();
+    for (unsigned i=0; i<stat_funcs.size(); i++) 
+        _stats.h[i] = stat_funcs[i]->finalize(_stats.h[i]);
     return std::vector<double>(_stats.h, _stats.h+_stats.len());
+}
+
+ImageStatistic::ImageStatistic(int _xpix, int _ypix, std::string _name) {
+    xpix = _xpix;
+    ypix = _ypix;
+    name = _name;
+}
+
+void ImageStatistic::setup() {
+    tmp_bytes = 0;
+    calc_buffer_size(); // This should fill in value for tmp_bytes
+    tmp.resize(tmp_bytes);
+}
+
+void ImageMax::calc_buffer_size() {
+    cub::DeviceReduce::Max(NULL, tmp_bytes, (rdata *)NULL, (double *)NULL, 
+            xpix*ypix);
+}
+
+void ImageMax::operate(Array<rdata,true> &img, double *result) {
+    cub::DeviceReduce::Max(tmp.d, tmp_bytes, img.d, result, xpix*ypix);
+}
+
+struct fn_square {
+    __device__ double operator() (const rdata &x) const { return x*x; }
+};
+
+void ImageRMS::calc_buffer_size() {
+    cub::DeviceReduce::Sum(NULL, tmp_bytes,
+            cub::TransformInputIterator<double, fn_square, rdata*>(
+                (rdata *)NULL, fn_square()),
+            (double *)NULL, xpix*ypix);
+}
+
+void ImageRMS::operate(Array<rdata,true> &img, double *result) {
+    cub::TransformInputIterator<double, fn_square, rdata*> 
+        sqr(img.d, fn_square());
+    cub::DeviceReduce::Sum(tmp.d, tmp_bytes, sqr, result, xpix*ypix);
 }

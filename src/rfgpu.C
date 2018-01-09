@@ -4,6 +4,10 @@
 namespace py = pybind11;
 
 #include <vector>
+#include <map>
+#include <string>
+#include <stdexcept>
+
 #include <complex>
 #include <cuda.h>
 
@@ -15,7 +19,21 @@ namespace rf = rfgpu;
 typedef rf::Array<rf::cdata,true> GPUArrayComplex;
 typedef rf::Array<rf::rdata,true> GPUArrayReal;
 
+namespace rfgpu {
+    void cudaSetDevice(int device) {
+        cudaError_t rv;
+        rv = ::cudaSetDevice(device);
+        if (rv!=cudaSuccess) {
+            char msg[1024];
+            sprintf(msg, "cudaSetDevice returned %d", rv);
+            throw std::runtime_error(msg);
+        }
+    }
+}
+
 PYBIND11_MODULE(rfgpu, m) {
+
+    m.def("cudaSetDevice", &rf::cudaSetDevice);
 
     py::class_<GPUArrayComplex>(m, "GPUArrayComplex")
         .def(py::init())
@@ -70,8 +88,15 @@ PYBIND11_MODULE(rfgpu, m) {
         .def("operate",
                 (void (rf::Image::*)(GPUArrayComplex&, GPUArrayReal&))
                 &rf::Image::operate)
-        .def("stats", 
-                (std::vector<double> (rf::Image::*)(GPUArrayReal &))
-                 &rf::Image::stats);
+        .def("add_stat", &rf::Image::add_stat)
+        .def("stats", [](py::object &o, GPUArrayReal &img) {
+                rf::Image &i = o.cast<rf::Image&>();
+                std::vector<std::string> keys = i.stat_names();
+                std::vector<double> vals = i.stats(img);
+                std::map<std::string,double> result;
+                for (unsigned ii=0; ii<vals.size(); ii++)
+                    result[keys[ii]] = vals[ii];
+                return result;
+                });
 
 }
