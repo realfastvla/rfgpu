@@ -70,6 +70,8 @@ void Image::add_stat(std::string name) {
         stat_funcs.push_back(new ImageMax(xpix,ypix,name));
     } else if (name=="rms") {
         stat_funcs.push_back(new ImageRMS(xpix,ypix,name));
+    } else if (name=="iqr") {
+        stat_funcs.push_back(new ImageIQR(xpix,ypix,name));
     } else {
         char msg[1024];
         sprintf(msg, "Image::add_stat unknown stat type '%s'", name.c_str());
@@ -132,4 +134,25 @@ void ImageRMS::operate(Array<rdata,true> &img, double *result) {
     cub::TransformInputIterator<double, fn_square, rdata*> 
         sqr(img.d, fn_square());
     cub::DeviceReduce::Sum(tmp.d, tmp_bytes, sqr, result, xpix*ypix);
+}
+
+void ImageIQR::calc_buffer_size() {
+    cub::DeviceRadixSort::SortKeys(NULL, tmp_bytes, 
+            (rdata *)NULL, (rdata *)NULL, 
+            xpix*ypix);
+    tmp_bytes += sizeof(rdata)*xpix*ypix;
+}
+
+__global__ void get_iqr(rdata *sorted, double *result, int npix) {
+    const int ii = blockDim.x*blockIdx.x + threadIdx.x;
+    if (ii==0) *result = sorted[3*npix/4] - sorted[npix/4];
+}
+
+void ImageIQR::operate(Array<rdata,true> &img, double *result) {
+    size_t offs = sizeof(rdata)*xpix*ypix;
+    size_t tmp_bytes_only = tmp_bytes - offs;
+    rdata *sorted = (rdata *)(tmp.d + offs);
+    cub::DeviceRadixSort::SortKeys(tmp.d, tmp_bytes_only,
+            img.d, sorted, xpix*ypix);
+    get_iqr<<<1,1>>>(sorted, result, xpix*ypix);
 }

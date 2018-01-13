@@ -13,7 +13,7 @@ nbl = uv.shape[0]
 nchan = 128
 ntime = 256
 xpix = 1024
-ypix = 2048
+ypix = 1024
 upix = xpix
 vpix = ypix/2 + 1
 freq = np.linspace(1000.0,2000.0,nchan)
@@ -39,6 +39,7 @@ image = rfgpu.Image(xpix,ypix)
 # to Image.stats()
 image.add_stat('rms')
 image.add_stat('max')
+image.add_stat('iqr')
 
 # Data buffers on GPU
 vis_raw = rfgpu.GPUArrayComplex((nbl,nchan,ntime))
@@ -95,6 +96,7 @@ img_data1 = fftshift(img_grid.data)
 # Image all dm/time slices, get back rms and max value for each
 img_rms = np.zeros((ndm,ntime/2))
 img_max = np.zeros((ndm,ntime/2))
+img_iqr = np.zeros((ndm,ntime/2))
 for idm in range(ndm):
     grid.set_shift(shifts[idm])
     for itime in range(ntime/2):
@@ -103,3 +105,4 @@ for idm in range(ndm):
         s = image.stats(img_grid)
         img_rms[idm,itime] = s['rms']
         img_max[idm,itime] = s['max']
+        img_iqr[idm,itime] = s['iqr']
