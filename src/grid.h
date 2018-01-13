@@ -25,6 +25,7 @@ namespace rfgpu {
 
             void compute(); // compute/sort gridding matrix
             void conjugate(Array<cdata,true> &data);
+            void downsample(Array<cdata,true> &data);
             void operate(Array<cdata,true> &in, Array<cdata,true> &out, 
                     int itime);
             void operate(cdata *in, cdata *out, int itime);

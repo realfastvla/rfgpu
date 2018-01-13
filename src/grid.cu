@@ -17,7 +17,6 @@
 
 using namespace rfgpu;
 
-// TODO raise exception
 #define cusparse_check_rv(func) \
     if (rv!=CUSPARSE_STATUS_SUCCESS) { \
         char msg[1024]; \
@@ -191,7 +190,31 @@ __global__ void conjugate_data(cdata *dat, int *conj, int nchan, int ntime) {
 }
 
 void Grid::conjugate(Array<cdata,true> &data) {
+    // TODO check array dimensions
     conjugate_data<<<nbl,512>>>(data.d, conj.d, nchan, ntime);
+}
+
+// Call with nbl thread blocks
+// TODO there may be problems if ntime is not divisible by 2
+__global__ void downsample_data(cdata *dat, int nchan, int ntime) {
+    const int ibl = blockIdx.x;
+    const int offs = ibl*nchan*ntime;
+    for (int ichan=0; ichan<nchan; ichan++) {
+        for (int itime=2*threadIdx.x; itime<ntime; itime+=blockDim.x) {
+            const int ii = offs + ichan*ntime + itime;
+            float2 x0 = dat[ii];
+            float2 x1 = dat[ii+1];
+            const int oo = offs + ichan*ntime + itime/2;
+            __syncthreads();
+            dat[oo].x = 0.5*(x0.x + x1.x);
+            dat[oo].y = 0.5*(x0.y + x1.y);
+        }
+    }
+}
+
+void Grid::downsample(Array<cdata,true> &data) {
+    // TODO check array dimensions
+    downsample_data<<<nbl,512>>>(data.d, nchan, ntime);
 }
 
 __global__ void adjust_cols(int *ocol, int *icol, int *chan,

@@ -39,7 +39,6 @@ image = rfgpu.Image(xpix,ypix)
 # to Image.stats()
 image.add_stat('rms')
 image.add_stat('max')
-image.add_stat('iqr')
 
 # Data buffers on GPU
 vis_raw = rfgpu.GPUArrayComplex((nbl,nchan,ntime))
@@ -94,15 +93,16 @@ img_grid.d2h()
 img_data1 = fftshift(img_grid.data)
 
 # Image all dm/time slices, get back rms and max value for each
-img_rms = np.zeros((ndm,ntime/2))
-img_max = np.zeros((ndm,ntime/2))
-img_iqr = np.zeros((ndm,ntime/2))
-for idm in range(ndm):
-    grid.set_shift(shifts[idm])
-    for itime in range(ntime/2):
-        grid.operate(vis_raw,vis_grid,itime)
-        image.operate(vis_grid,img_grid)
-        s = image.stats(img_grid)
-        img_rms[idm,itime] = s['rms']
-        img_max[idm,itime] = s['max']
-        img_iqr[idm,itime] = s['iqr']
+nds = 4 # number of downsamples
+img_rms = np.zeros((nds,ndm,ntime/2))
+img_max = np.zeros((nds,ndm,ntime/2))
+for ids in range(nds):
+    for idm in range(ndm):
+        grid.set_shift(shifts[idm]>>ids)
+        for itime in range((ntime/2)>>ids):
+            grid.operate(vis_raw,vis_grid,itime)
+            image.operate(vis_grid,img_grid)
+            s = image.stats(img_grid)
+            img_rms[ids,idm,itime] = s['rms']
+            img_max[ids,idm,itime] = s['max']
+    grid.downsample(vis_raw)
