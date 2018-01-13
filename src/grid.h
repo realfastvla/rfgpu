@@ -43,6 +43,21 @@ namespace rfgpu {
             int ncol() const { return nbl*nchan; }
             int nrow() const { return upix*vpix; }
 
+            std::vector<unsigned> indim() const { 
+                std::vector<unsigned> d(3);
+                d[0] = nbl;
+                d[1] = nchan;
+                d[2] = ntime;
+                return d;
+            }
+
+            std::vector<unsigned> outdim() const { 
+                std::vector<unsigned> d(2);
+                d[0] = upix;
+                d[1] = vpix;
+                return d;
+            }
+
             int nbl;
             int nchan;
             int ntime;

@@ -24,6 +24,13 @@ using namespace rfgpu;
         throw std::runtime_error(msg); \
     }
 
+#define array_dim_check(func,array,expected) \
+    if (array.dims() != expected) { \
+        char msg[1024]; \
+        sprintf(msg, "%s: array dimension error", func); \
+        throw std::invalid_argument(msg); \
+    }
+
 Grid::Grid(int _nbl, int _nchan, int _ntime, int _upix, int _vpix) {
     nbl = _nbl;
     nchan = _nchan;
@@ -190,7 +197,7 @@ __global__ void conjugate_data(cdata *dat, int *conj, int nchan, int ntime) {
 }
 
 void Grid::conjugate(Array<cdata,true> &data) {
-    // TODO check array dimensions
+    array_dim_check("Grid::conjugate", data, indim());
     conjugate_data<<<nbl,512>>>(data.d, conj.d, nchan, ntime);
 }
 
@@ -213,7 +220,7 @@ __global__ void downsample_data(cdata *dat, int nchan, int ntime) {
 }
 
 void Grid::downsample(Array<cdata,true> &data) {
-    // TODO check array dimensions
+    array_dim_check("Grid::downsample", data, indim());
     downsample_data<<<nbl,512>>>(data.d, nchan, ntime);
 }
 
@@ -229,18 +236,8 @@ __global__ void adjust_cols(int *ocol, int *icol, int *chan,
 }
 
 void Grid::operate(Array<cdata,true> &in, Array<cdata,true> &out, int itime) {
-    if (in.len()!=nbl*nchan*ntime) {
-        char msg[1024];
-        sprintf(msg, "Grid::operate input array size (%d) != expected (%d)",
-                in.len(), nbl*nchan*ntime);
-        throw std::invalid_argument(msg);
-    }
-    if (out.len()!=upix*vpix) {
-        char msg[1024];
-        sprintf(msg, "Grid::operate output array size (%d) != expected (%d)",
-                in.len(), upix*vpix);
-        throw std::invalid_argument(msg);
-    }
+    array_dim_check("Grid::operate(in)", in, indim());
+    array_dim_check("Grid::operate(out)", out, outdim());
     operate(in.d, out.d, itime);
 }
 
