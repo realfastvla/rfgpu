@@ -92,5 +92,15 @@ namespace rfgpu {
             void calc_buffer_size();
     };
 
+    class ImageIQR: public ImageStatistic
+    {
+        public:
+            ImageIQR(int xpix, int ypix, std::string name="iqr") 
+                : ImageStatistic(xpix, ypix, name) {}
+            void operate(Array<rdata,true> &img, double *result);
+        protected:
+            void calc_buffer_size();
+    };
+
 }
 #endif

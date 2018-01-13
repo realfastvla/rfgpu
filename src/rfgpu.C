@@ -79,6 +79,9 @@ PYBIND11_MODULE(rfgpu, m) {
         .def("conjugate", 
                 (void (rf::Grid::*)(GPUArrayComplex&))
                 &rf::Grid::conjugate)
+        .def("downsample", 
+                (void (rf::Grid::*)(GPUArrayComplex&))
+                &rf::Grid::downsample)
         .def("operate", 
                 (void (rf::Grid::*)(GPUArrayComplex&, GPUArrayComplex&, int)) 
                 &rf::Grid::operate);

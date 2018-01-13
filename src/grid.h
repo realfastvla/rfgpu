@@ -25,6 +25,7 @@ namespace rfgpu {
 
             void compute(); // compute/sort gridding matrix
             void conjugate(Array<cdata,true> &data);
+            void downsample(Array<cdata,true> &data);
             void operate(Array<cdata,true> &in, Array<cdata,true> &out, 
                     int itime);
             void operate(cdata *in, cdata *out, int itime);
@@ -41,6 +42,21 @@ namespace rfgpu {
 
             int ncol() const { return nbl*nchan; }
             int nrow() const { return upix*vpix; }
+
+            std::vector<unsigned> indim() const { 
+                std::vector<unsigned> d(3);
+                d[0] = nbl;
+                d[1] = nchan;
+                d[2] = ntime;
+                return d;
+            }
+
+            std::vector<unsigned> outdim() const { 
+                std::vector<unsigned> d(2);
+                d[0] = upix;
+                d[1] = vpix;
+                return d;
+            }
 
             int nbl;
             int nchan;

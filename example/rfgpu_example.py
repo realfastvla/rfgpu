@@ -13,7 +13,7 @@ nbl = uv.shape[0]
 nchan = 128
 ntime = 256
 xpix = 1024
-ypix = 2048
+ypix = 1024
 upix = xpix
 vpix = ypix/2 + 1
 freq = np.linspace(1000.0,2000.0,nchan)
@@ -97,13 +97,16 @@ print('img 1: max {0}, std {1}, peak {2}'
       .format(img_data1.max(), img_data1.std(), np.where(img_data1 == img_data1.max())))
 
 # Image all dm/time slices, get back rms and max value for each
-img_rms = np.zeros((ndm,ntime/2))
-img_max = np.zeros((ndm,ntime/2))
-for idm in range(ndm):
-    grid.set_shift(shifts[idm])
-    for itime in range(ntime/2):
-        grid.operate(vis_raw,vis_grid,itime)
-        image.operate(vis_grid,img_grid)
-        s = image.stats(img_grid)
-        img_rms[idm,itime] = s['rms']
-        img_max[idm,itime] = s['max']
+nds = 4 # number of downsamples
+img_rms = np.zeros((nds,ndm,ntime/2))
+img_max = np.zeros((nds,ndm,ntime/2))
+for ids in range(nds):
+    for idm in range(ndm):
+        grid.set_shift(shifts[idm]>>ids)
+        for itime in range((ntime/2)>>ids):
+            grid.operate(vis_raw,vis_grid,itime)
+            image.operate(vis_grid,img_grid)
+            s = image.stats(img_grid)
+            img_rms[ids,idm,itime] = s['rms']
+            img_max[ids,idm,itime] = s['max']
+    grid.downsample(vis_raw)

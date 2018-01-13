@@ -17,12 +17,18 @@
 
 using namespace rfgpu;
 
-// TODO raise exception
 #define cusparse_check_rv(func) \
     if (rv!=CUSPARSE_STATUS_SUCCESS) { \
         char msg[1024]; \
         sprintf(msg, "cusparse error: %s returned %d", func, rv); \
         throw std::runtime_error(msg); \
+    }
+
+#define array_dim_check(func,array,expected) \
+    if (array.dims() != expected) { \
+        char msg[1024]; \
+        sprintf(msg, "%s: array dimension error", func); \
+        throw std::invalid_argument(msg); \
     }
 
 Grid::Grid(int _nbl, int _nchan, int _ntime, int _upix, int _vpix) {
@@ -191,7 +197,31 @@ __global__ void conjugate_data(cdata *dat, int *conj, int nchan, int ntime) {
 }
 
 void Grid::conjugate(Array<cdata,true> &data) {
+    array_dim_check("Grid::conjugate", data, indim());
     conjugate_data<<<nbl,512>>>(data.d, conj.d, nchan, ntime);
+}
+
+// Call with nbl thread blocks
+// TODO there may be problems if ntime is not divisible by 2
+__global__ void downsample_data(cdata *dat, int nchan, int ntime) {
+    const int ibl = blockIdx.x;
+    const int offs = ibl*nchan*ntime;
+    for (int ichan=0; ichan<nchan; ichan++) {
+        for (int itime=2*threadIdx.x; itime<ntime; itime+=blockDim.x) {
+            const int ii = offs + ichan*ntime + itime;
+            float2 x0 = dat[ii];
+            float2 x1 = dat[ii+1];
+            const int oo = offs + ichan*ntime + itime/2;
+            __syncthreads();
+            dat[oo].x = 0.5*(x0.x + x1.x);
+            dat[oo].y = 0.5*(x0.y + x1.y);
+        }
+    }
+}
+
+void Grid::downsample(Array<cdata,true> &data) {
+    array_dim_check("Grid::downsample", data, indim());
+    downsample_data<<<nbl,512>>>(data.d, nchan, ntime);
 }
 
 __global__ void adjust_cols(int *ocol, int *icol, int *chan,
@@ -206,18 +236,8 @@ __global__ void adjust_cols(int *ocol, int *icol, int *chan,
 }
 
 void Grid::operate(Array<cdata,true> &in, Array<cdata,true> &out, int itime) {
-    if (in.len()!=nbl*nchan*ntime) {
-        char msg[1024];
-        sprintf(msg, "Grid::operate input array size (%d) != expected (%d)",
-                in.len(), nbl*nchan*ntime);
-        throw std::invalid_argument(msg);
-    }
-    if (out.len()!=upix*vpix) {
-        char msg[1024];
-        sprintf(msg, "Grid::operate output array size (%d) != expected (%d)",
-                in.len(), upix*vpix);
-        throw std::invalid_argument(msg);
-    }
+    array_dim_check("Grid::operate(in)", in, indim());
+    array_dim_check("Grid::operate(out)", out, outdim());
     operate(in.d, out.d, itime);
 }
 
