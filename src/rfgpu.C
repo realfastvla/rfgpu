@@ -14,6 +14,7 @@ namespace py = pybind11;
 #include "array.h"
 #include "grid.h"
 #include "image.h"
+#include "timer.h"
 namespace rf = rfgpu;
 
 typedef rf::Array<rf::cdata,true> GPUArrayComplex;
@@ -101,6 +102,14 @@ PYBIND11_MODULE(rfgpu, m) {
                 std::map<std::string,double> result;
                 for (unsigned ii=0; ii<vals.size(); ii++)
                     result[keys[ii]] = vals[ii];
+                return result;
+                })
+        .def("timers", [](py::object &o) {
+                rf::Image &i = o.cast<rf::Image&>();
+                std::map<std::string,double> result;
+                for (std::map<std::string,rf::Timer*>::iterator it=i.timers.begin();
+                        it!=i.timers.end(); ++it) 
+                    result[it->first] = it->second->get_time();
                 return result;
                 });
 

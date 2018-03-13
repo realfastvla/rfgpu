@@ -14,6 +14,7 @@
 #include <cub/cub.cuh>
 
 #include "image.h"
+#include "timer.h"
 
 using namespace rfgpu;
 
@@ -27,6 +28,8 @@ Image::Image(int _xpix, int _ypix) {
 Image::~Image() {
     if (plan) cufftDestroy(plan);
     for (unsigned i=0; i<stat_funcs.size(); i++) delete stat_funcs[i];
+    for (std::map<std::string,Timer*>::iterator i=timers.begin(); 
+            i!=timers.end(); i++) delete i->second;
 }
 
 void Image::setup() {
@@ -37,7 +40,9 @@ void Image::setup() {
         sprintf(msg, "Image::setup error planning FFT (%d)", rv);
         throw std::runtime_error(msg);
     }
+    timers["fft"] = new Timer();
 }
+
 
 void Image::operate(Array<cdata,true> &vis, Array<rdata,true> &img) {
     if (vis.len() != vispix()) {
@@ -57,7 +62,9 @@ void Image::operate(Array<cdata,true> &vis, Array<rdata,true> &img) {
 
 void Image::operate(cdata *vis, rdata *img) {
     cufftResult_t rv;
+    timers["fft"]->start();
     rv = cufftExecC2R(plan, vis, img);
+    timers["fft"]->stop();
     if (rv != CUFFT_SUCCESS) {
         char msg[1024];
         sprintf(msg, "Image::operate error executing FFT (%d)", rv);
@@ -79,6 +86,7 @@ void Image::add_stat(std::string name) {
     }
     _stats.resize(_stats.len() + 1);
     stat_funcs.back()->setup();
+    timers[name] = new Timer();
 }
 
 std::vector<std::string> Image::stat_names() const {
@@ -90,8 +98,11 @@ std::vector<std::string> Image::stat_names() const {
 }
 
 std::vector<double> Image::stats(Array<rdata,true> &img) {
-    for (unsigned i=0; i<stat_funcs.size(); i++)
+    for (unsigned i=0; i<stat_funcs.size(); i++) {
+        timers[stat_funcs[i]->name]->start();
         stat_funcs[i]->operate(img, _stats.d + i);
+        timers[stat_funcs[i]->name]->stop();
+    }
     _stats.d2h();
     for (unsigned i=0; i<stat_funcs.size(); i++) 
         _stats.h[i] = stat_funcs[i]->finalize(_stats.h[i]);

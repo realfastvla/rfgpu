@@ -3,12 +3,14 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 #include <cuda.h>
 #include <cuComplex.h>
 #include <cufft.h>
 
 #include "array.h"
+#include "timer.h"
 
 namespace rfgpu {
 
@@ -29,6 +31,8 @@ namespace rfgpu {
             void add_stat(std::string name);
             std::vector<std::string> stat_names() const;
             std::vector<double> stats(Array<rdata,true> &img);
+
+            std::map<std::string,Timer *> timers;
 
         protected:
             void setup();
