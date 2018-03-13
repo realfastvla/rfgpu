@@ -16,7 +16,7 @@ PYBIND_INC = -I /users/pdemores/src/pybind11-2.2.1/include
 CXX = /opt/local/compilers/gcc-5/bin/g++
 NVCC = nvcc -g -ccbin $(CXX) -arch sm_61
 
-OBJS = grid.o image.o
+OBJS = grid.o image.o timer.o
 
 %.o : %.cu %.h
 	$(NVCC) --compiler-options -fPIC \
