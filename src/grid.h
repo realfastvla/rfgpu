@@ -2,6 +2,7 @@
 #define _GRID_H
 
 #include <vector>
+#include <map>
 
 #include <cuda.h>
 #include <cuComplex.h>
@@ -9,6 +10,7 @@
 #include <cusparse.h>
 
 #include "array.h"
+#include "timer.h"
 
 namespace rfgpu {
 
@@ -35,6 +37,8 @@ namespace rfgpu {
                     const std::vector<float> &v);
             void set_freq(const std::vector<float> &freq);
             void set_shift(const std::vector<int> &shift);
+
+            std::map<std::string,Timer *> timers;
 
         protected:
 

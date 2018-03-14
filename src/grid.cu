@@ -51,6 +51,12 @@ Grid::Grid(int _nbl, int _nchan, int _ntime, int _upix, int _vpix) {
 
     maxshift = 0;
 
+    timers["grid"] = new Timer();
+    timers["cols"] = new Timer();
+    timers["ds"] = new Timer();
+    timers["compute"] = new Timer();
+    timers["conj"] = new Timer();
+
     allocate();
 }
 
@@ -124,6 +130,7 @@ void Grid::set_shift(const std::vector<int> &_shift) {
 void Grid::compute() {
 
     //printf("nrow=%d ncol=%d\n", nrow(), ncol());
+    timers["compute"]->start();
 
     // compute grid pix location for each input vis
     nnz = 0;
@@ -183,6 +190,7 @@ void Grid::compute() {
     G_cols0.d2h();
     for (int i=0; i<nnz; i++) { G_chan.h[i] = G_cols0.h[i] % nchan; }
     G_chan.h2d();
+    timers["compute"]->stop();
 }
 
 // Call with nbl thread blocks
@@ -198,7 +206,9 @@ __global__ void conjugate_data(cdata *dat, int *conj, int nchan, int ntime) {
 
 void Grid::conjugate(Array<cdata,true> &data) {
     array_dim_check("Grid::conjugate", data, indim());
+    timers["conj"]->start();
     conjugate_data<<<nbl,512>>>(data.d, conj.d, nchan, ntime);
+    timers["conj"]->stop();
 }
 
 // Call with nbl thread blocks
@@ -221,7 +231,9 @@ __global__ void downsample_data(cdata *dat, int nchan, int ntime) {
 
 void Grid::downsample(Array<cdata,true> &data) {
     array_dim_check("Grid::downsample", data, indim());
+    timers["ds"]->start();
     downsample_data<<<nbl,512>>>(data.d, nchan, ntime);
+    timers["ds"]->stop();
 }
 
 __global__ void adjust_cols(int *ocol, int *icol, int *chan,
@@ -250,14 +262,18 @@ void Grid::operate(cdata *in, cdata *out, int itime) {
         throw std::invalid_argument(msg);
     }
 
+    timers["cols"]->start();
     adjust_cols<<<nbl, nchan>>>(G_cols.d, G_cols0.d, G_chan.d, shift.d, 
             itime, nchan, nnz, ntime);
+    timers["cols"]->stop();
 
     cusparseStatus_t rv;
+    timers["grid"]->start();
     rv = cusparseCcsrmv(sparse, CUSPARSE_OPERATION_NON_TRANSPOSE,
             nrow(), ncol()*ntime, nnz, &h_one, descr,
             G_vals.d, G_rows.d, G_cols.d,
             in, &h_zero, out);
+    timers["grid"]->stop();
     cusparse_check_rv("cusparseCcsrmv");
 }
 
