@@ -17,7 +17,8 @@ namespace rfgpu {
             void start();
             void stop();
 
-            double get_time() const { return t_total/(double)n_call; }
+            double get_time_percall() const { return 1e3*t_total/(double)n_call; }
+            double get_time_total() const { return 1e3*t_total; }
 
         protected:
             cudaEvent_t event0;

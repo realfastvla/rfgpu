@@ -86,7 +86,18 @@ PYBIND11_MODULE(rfgpu, m) {
         .def("operate", 
                 (void (rf::Grid::*)(GPUArrayComplex&, GPUArrayComplex&, int)) 
                 &rf::Grid::operate,
-                py::call_guard<py::gil_scoped_release>());
+                py::call_guard<py::gil_scoped_release>())
+        .def("timers", [](py::object &o, bool total) {
+                rf::Grid &g = o.cast<rf::Grid&>();
+                std::map<std::string,double> result;
+                for (std::map<std::string,rf::Timer*>::iterator it=g.timers.begin();
+                        it!=g.timers.end(); ++it) 
+                    if (total)
+                        result[it->first] = it->second->get_time_total();
+                    else
+                        result[it->first] = it->second->get_time_percall();
+                return result;
+                }, py::arg("total")=false);
 
     py::class_<rf::Image>(m, "Image")
         .def(py::init<int,int>())
@@ -104,13 +115,16 @@ PYBIND11_MODULE(rfgpu, m) {
                     result[keys[ii]] = vals[ii];
                 return result;
                 })
-        .def("timers", [](py::object &o) {
+        .def("timers", [](py::object &o, bool total) {
                 rf::Image &i = o.cast<rf::Image&>();
                 std::map<std::string,double> result;
                 for (std::map<std::string,rf::Timer*>::iterator it=i.timers.begin();
                         it!=i.timers.end(); ++it) 
-                    result[it->first] = it->second->get_time();
+                    if (total)
+                        result[it->first] = it->second->get_time_total();
+                    else
+                        result[it->first] = it->second->get_time_percall();
                 return result;
-                });
+                }, py::arg("total")=false);
 
 }
