@@ -72,7 +72,7 @@ namespace rfgpu {
         _dims.resize(1);
         _dims[0] = len;
         if (d) CUDA_ERROR_CHECK(cudaFree(d));
-        cudaMalloc((void**)&d, size());
+        CUDA_ERROR_CHECK(cudaMalloc((void**)&d, size()));
         if (host) {
             if (h) CUDA_ERROR_CHECK(cudaFreeHost(h));
             CUDA_ERROR_CHECK(cudaMallocHost((void**)&h, size()));
