@@ -84,13 +84,15 @@ PYBIND11_MODULE(rfgpu, m) {
                 &rf::Grid::downsample)
         .def("operate", 
                 (void (rf::Grid::*)(GPUArrayComplex&, GPUArrayComplex&, int)) 
-                &rf::Grid::operate);
+                &rf::Grid::operate,
+                py::call_guard<py::gil_scoped_release>());
 
     py::class_<rf::Image>(m, "Image")
         .def(py::init<int,int>())
         .def("operate",
                 (void (rf::Image::*)(GPUArrayComplex&, GPUArrayReal&))
-                &rf::Image::operate)
+                &rf::Image::operate,
+                py::call_guard<py::gil_scoped_release>())
         .def("add_stat", &rf::Image::add_stat)
         .def("stats", [](py::object &o, GPUArrayReal &img) {
                 rf::Image &i = o.cast<rf::Image&>();
