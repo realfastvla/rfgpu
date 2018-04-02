@@ -38,6 +38,8 @@ namespace rfgpu {
             void set_freq(const std::vector<float> &freq);
             void set_shift(const std::vector<int> &shift);
 
+            int get_nnz() const { return nnz; }
+
             std::map<std::string,Timer *> timers;
 
         protected:

@@ -77,6 +77,7 @@ PYBIND11_MODULE(rfgpu, m) {
         .def("set_shift", &rf::Grid::set_shift)
         .def("set_cell", &rf::Grid::set_cell)
         .def("compute", &rf::Grid::compute)
+        .def("get_nnz", &rf::Grid::get_nnz)
         .def("conjugate", 
                 (void (rf::Grid::*)(GPUArrayComplex&))
                 &rf::Grid::conjugate)
