@@ -32,7 +32,7 @@ namespace rfgpu {
             std::vector<std::string> stat_names() const;
             std::vector<double> stats(Array<rdata,true> &img);
 
-            std::map<std::string,Timer *> timers;
+            IFTIMER( std::map<std::string,Timer *> timers; )
 
         protected:
             void setup();

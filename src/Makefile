@@ -14,15 +14,21 @@ PY_INC = -I $(shell python -c "import sysconfig; print(sysconfig.get_paths()['in
 PYBIND_INC = -I /users/pdemores/src/pybind11-2.2.1/include
 
 CXX = /opt/local/compilers/gcc-5/bin/g++
-NVCC = nvcc -g -ccbin $(CXX) -arch sm_61
+NVCC = nvcc -ccbin $(CXX) -arch sm_61
 
-OBJS = grid.o image.o timer.o
+CFLAGS = -g
+
+OBJS = grid.o image.o
+
+# Uncomment these two lines to compile timing code
+#CFLAGS += -DUSETIMER
+#OBJS += timer.o
 
 %.o : %.cu %.h
-	$(NVCC) --compiler-options -fPIC \
+	$(NVCC) $(CFLAGS) --compiler-options -fPIC \
 		-c $(CUDA_INC) $< -o $@
 
 rfgpu.so: rfgpu.C $(OBJS)
-	$(CXX) -shared -std=c++11 -fPIC \
+	$(CXX) $(CFLAGS) -shared -std=c++11 -fPIC \
 		$(PY_INC) $(PYBIND_INC) $(CUDA_INC) \
 		$< -o $@ $(OBJS) $(CUDA_LIB)

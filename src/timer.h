@@ -5,6 +5,10 @@
 
 #include <cuda.h>
 
+#ifdef USETIMER
+
+#define IFTIMER(...) __VA_ARGS__
+
 namespace rfgpu {
 
     class Timer
@@ -29,5 +33,11 @@ namespace rfgpu {
     };
         
 }
+
+#else // USETIMER not defined
+
+#define IFTIMER(...)
+
+#endif // USETIMER
 
 #endif // _TIMER_H

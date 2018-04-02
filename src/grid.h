@@ -40,7 +40,7 @@ namespace rfgpu {
 
             int get_nnz() const { return nnz; }
 
-            std::map<std::string,Timer *> timers;
+            IFTIMER( std::map<std::string,Timer *> timers; )
 
         protected:
 

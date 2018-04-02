@@ -88,6 +88,7 @@ PYBIND11_MODULE(rfgpu, m) {
                 (void (rf::Grid::*)(GPUArrayComplex&, GPUArrayComplex&, int)) 
                 &rf::Grid::operate,
                 py::call_guard<py::gil_scoped_release>())
+#ifdef USETIMER
         .def("timers", [](py::object &o, bool total) {
                 rf::Grid &g = o.cast<rf::Grid&>();
                 std::map<std::string,double> result;
@@ -98,7 +99,9 @@ PYBIND11_MODULE(rfgpu, m) {
                     else
                         result[it->first] = it->second->get_time_percall();
                 return result;
-                }, py::arg("total")=false);
+                }, py::arg("total")=false)
+#endif
+    ;
 
     py::class_<rf::Image>(m, "Image")
         .def(py::init<int,int>())
@@ -116,6 +119,7 @@ PYBIND11_MODULE(rfgpu, m) {
                     result[keys[ii]] = vals[ii];
                 return result;
                 })
+#ifdef USETIMER
         .def("timers", [](py::object &o, bool total) {
                 rf::Image &i = o.cast<rf::Image&>();
                 std::map<std::string,double> result;
@@ -126,6 +130,8 @@ PYBIND11_MODULE(rfgpu, m) {
                     else
                         result[it->first] = it->second->get_time_percall();
                 return result;
-                }, py::arg("total")=false);
+                }, py::arg("total")=false)
+#endif
+        ;
 
 }
