@@ -257,7 +257,7 @@ void Grid::operate(Array<cdata,true> &in, Array<cdata,true> &out, int itime) {
 }
 
 void Grid::operate(cdata *in, cdata *out, int itime) {
-    if (itime>=ntime) {
+    if ((itime+maxshift)>=ntime) {
         char msg[1024];
         sprintf(msg, 
                 "Grid::operate itime(%d)+maxshift(%d) >= ntime(%d)", 
