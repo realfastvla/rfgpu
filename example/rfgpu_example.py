@@ -1,10 +1,16 @@
+import sys
 import numpy as np
 from numpy.fft import fftshift
 import rfgpu
 
 # Select which GPU to use; this must be done before calling any other
 # rfgpu functions.
-rfgpu.cudaSetDevice(0)
+try:
+    dev = int(sys.argv[1])
+except:
+    dev = 0
+print 'using cuda device %d' % dev
+rfgpu.cudaSetDevice(dev)
 
 # B-config uv points
 uv = np.loadtxt('uv_B_signed.dat')
@@ -12,7 +18,7 @@ uv = np.loadtxt('uv_B_signed.dat')
 nbl = uv.shape[0]
 nchan = 128
 ntime = 256
-xpix = 1024
+xpix = 2048
 ypix = 1024
 upix = xpix
 vpix = ypix/2 + 1
@@ -38,7 +44,7 @@ image = rfgpu.Image(xpix,ypix)
 # Set up which statistics we want Image to compute during each call
 # to Image.stats()
 image.add_stat('rms')
-image.add_stat('max')
+image.add_stat('pix')
 
 # Data buffers on GPU
 vis_raw = rfgpu.GPUArrayComplex((nbl,nchan,ntime))
@@ -81,20 +87,30 @@ grid.operate(vis_raw, vis_grid, 0)
 
 # Do FFT
 image.operate(vis_grid, img_grid)
+s = image.stats(img_grid)
 
 # Get image back from GPU
 img_grid.d2h()
 img_data0 = fftshift(img_grid.data) # put center pixel in middle of image
+#img_data0 = img_grid.data
 print('img 0: max {0}, std {1}, peak {2}'
       .format(img_data0.max(), img_data0.std(), np.where(img_data0 == img_data0.max())))
+print('img 0: max {0}, std {1}, xpeak {2}, ypeak {3}'
+      .format(s['max'], s['rms'], s['xpeak']+xpix/2, s['ypeak']+ypix/2))
+print s
 
 # Image time slice 1, this should have two point sources
 grid.operate(vis_raw, vis_grid, 15)
 image.operate(vis_grid, img_grid)
+s = image.stats(img_grid)
 img_grid.d2h()
 img_data1 = fftshift(img_grid.data)
+#img_data1 = img_grid.data
 print('img 1: max {0}, std {1}, peak {2}'
       .format(img_data1.max(), img_data1.std(), np.where(img_data1 == img_data1.max())))
+print('img 1: max {0}, std {1}, xpeak {2}, ypeak {3}'
+      .format(s['max'], s['rms'], s['xpeak']+xpix/2, s['ypeak']+ypix/2))
+print s
 
 # Image all dm/time slices, get back rms and max value for each
 nds = 4 # number of downsamples
