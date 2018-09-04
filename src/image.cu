@@ -168,7 +168,7 @@ void ImageMaxPixel::finalize(double *result) const {
     int maxpix = (int)(result[1]);
     result[1] = (maxpix / ypix);
     if (result[1] > xpix/2) { result[1] -= xpix; }
-    result[2] = (maxpix % xpix);
+    result[2] = (maxpix % ypix);
     if (result[2] > ypix/2) { result[2] -= ypix; }
 }
 
