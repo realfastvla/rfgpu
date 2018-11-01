@@ -25,12 +25,12 @@ namespace rfgpu {
             Image(int xpix, int ypix);
             ~Image();
 
-            void operate(Array<cdata,true> &vis, Array<rdata,true> &img);
+            void operate(Array<cdata> &vis, Array<rdata> &img);
             void operate(cdata *vis, rdata *img);
 
             void add_stat(std::string name);
             std::vector<std::string> stat_names() const;
-            std::vector<double> stats(Array<rdata,true> &img);
+            std::vector<double> stats(Array<rdata> &img);
 
             IFTIMER( std::map<std::string,Timer *> timers; )
 
@@ -45,7 +45,7 @@ namespace rfgpu {
 
             cufftHandle plan;
 
-            Array<double,true> _stats;
+            Array<double> _stats;
             std::vector<size_t> _stat_offs;
 
             std::vector<ImageStatistic *> stat_funcs;
@@ -59,7 +59,7 @@ namespace rfgpu {
             ImageStatistic(int xpix, int ypix, std::string name);
             ~ImageStatistic() {};
 
-            virtual void operate(Array<rdata,true> &img, double *result) = 0;
+            virtual void operate(Array<rdata> &img, double *result) = 0;
             virtual void finalize(double *result) const {}
 
             // The provides function should return a list of strings giving
@@ -91,7 +91,7 @@ namespace rfgpu {
         public:
             ImageMax(int xpix, int ypix, std::string name="max") 
                 : ImageStatistic(xpix, ypix, name) {}
-            void operate(Array<rdata,true> &img, double *result);
+            void operate(Array<rdata> &img, double *result);
         protected:
             void calc_buffer_size();
     };
@@ -101,7 +101,7 @@ namespace rfgpu {
         public:
             ImageMaxPixel(int xpix, int ypix, std::string name="pix") 
                 : ImageStatistic(xpix, ypix, name) {}
-            void operate(Array<rdata,true> &img, double *result);
+            void operate(Array<rdata> &img, double *result);
             std::vector<std::string> provides() const {
                 std::vector<std::string> r;
                 r.push_back("max");
@@ -119,7 +119,7 @@ namespace rfgpu {
         public:
             ImageRMS(int xpix, int ypix, std::string name="rms") 
                 : ImageStatistic(xpix, ypix, name) {}
-            void operate(Array<rdata,true> &img, double *result);
+            void operate(Array<rdata> &img, double *result);
             void finalize(double *result) const 
                 { *result = sqrt((*result)/(double)(xpix*ypix)); }
         protected:
@@ -131,7 +131,7 @@ namespace rfgpu {
         public:
             ImageIQR(int xpix, int ypix, std::string name="iqr") 
                 : ImageStatistic(xpix, ypix, name) {}
-            void operate(Array<rdata,true> &img, double *result);
+            void operate(Array<rdata> &img, double *result);
         protected:
             void calc_buffer_size();
     };

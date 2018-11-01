@@ -46,7 +46,7 @@ void Image::setup() {
 }
 
 
-void Image::operate(Array<cdata,true> &vis, Array<rdata,true> &img) {
+void Image::operate(Array<cdata> &vis, Array<rdata> &img) {
     if (vis.len() != vispix()) {
         char msg[1024];
         sprintf(msg, "Image::operate vis array size (%d) != expected (%d)",
@@ -107,7 +107,7 @@ std::vector<std::string> Image::stat_names() const {
     return names;
 }
 
-std::vector<double> Image::stats(Array<rdata,true> &img) {
+std::vector<double> Image::stats(Array<rdata> &img) {
     for (unsigned i=0; i<stat_funcs.size(); i++) {
         IFTIMER( timers[stat_funcs[i]->name]->start(); )
         stat_funcs[i]->operate(img, _stats.d + _stat_offs[i]);
@@ -119,7 +119,9 @@ std::vector<double> Image::stats(Array<rdata,true> &img) {
     return std::vector<double>(_stats.h, _stats.h+_stats.len());
 }
 
-ImageStatistic::ImageStatistic(int _xpix, int _ypix, std::string _name) {
+ImageStatistic::ImageStatistic(int _xpix, int _ypix, std::string _name) 
+: tmp(false) 
+{
     xpix = _xpix;
     ypix = _ypix;
     name = _name;
@@ -136,7 +138,7 @@ void ImageMax::calc_buffer_size() {
             xpix*ypix);
 }
 
-void ImageMax::operate(Array<rdata,true> &img, double *result) {
+void ImageMax::operate(Array<rdata> &img, double *result) {
     cub::DeviceReduce::Max(tmp.d, tmp_bytes, img.d, result, xpix*ypix);
 }
 
@@ -155,7 +157,7 @@ __global__ void get_maxpix(cub::KeyValuePair<int,rdata> *argmax, double *result)
     }
 }
 
-void ImageMaxPixel::operate(Array<rdata,true> &img, double *result) {
+void ImageMaxPixel::operate(Array<rdata> &img, double *result) {
     size_t offs = sizeof(cub::KeyValuePair<int, rdata>);
     size_t tmp_bytes_only = tmp_bytes - offs;
     cub::KeyValuePair<int, rdata> *argmax = 
@@ -183,7 +185,7 @@ void ImageRMS::calc_buffer_size() {
             (double *)NULL, xpix*ypix);
 }
 
-void ImageRMS::operate(Array<rdata,true> &img, double *result) {
+void ImageRMS::operate(Array<rdata> &img, double *result) {
     cub::TransformInputIterator<double, fn_square, rdata*> 
         sqr(img.d, fn_square());
     cub::DeviceReduce::Sum(tmp.d, tmp_bytes, sqr, result, xpix*ypix);
@@ -201,7 +203,7 @@ __global__ void get_iqr(rdata *sorted, double *result, int npix) {
     if (ii==0) *result = sorted[3*npix/4] - sorted[npix/4];
 }
 
-void ImageIQR::operate(Array<rdata,true> &img, double *result) {
+void ImageIQR::operate(Array<rdata> &img, double *result) {
     size_t offs = sizeof(rdata)*xpix*ypix;
     size_t tmp_bytes_only = tmp_bytes - offs;
     rdata *sorted = (rdata *)(tmp.d + offs);

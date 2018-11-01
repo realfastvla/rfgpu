@@ -26,9 +26,9 @@ namespace rfgpu {
             ~Grid() {};
 
             void compute(); // compute/sort gridding matrix
-            void conjugate(Array<cdata,true> &data);
-            void downsample(Array<cdata,true> &data);
-            void operate(Array<cdata,true> &in, Array<cdata,true> &out, 
+            void conjugate(Array<cdata> &data);
+            void downsample(Array<cdata> &data);
+            void operate(Array<cdata> &in, Array<cdata> &out, 
                     int itime);
             void operate(cdata *in, cdata *out, int itime);
 
@@ -76,16 +76,16 @@ namespace rfgpu {
             std::vector<float> v; // us
             std::vector<float> freq; // MHz
 
-            // All these point to GPU memory.  If true arg is present,
-            // a copy exists in host memory also.
-            Array<cdata,true> G_vals;  // Values of gridding matrix G (nnz)
-            Array<int,true> G_rows;    // Row indices, CSR format (nrow+1)
+            // All these point to GPU memory.  Any which should not also be
+            // allocated on host should be listed in constructor init list.
+            Array<cdata> G_vals;  // Values of gridding matrix G (nnz)
+            Array<int> G_rows;    // Row indices, CSR format (nrow+1)
             Array<int> G_cols;    // Column indices, CSR (nnz)
-            Array<int,true> G_chan;    // Channel index of each entry (nnz)
-            Array<int,true> G_cols0;   // Base column indices (nnz)
-            Array<int,true> G_pix;     // pixel index of each entry (nnz)
-            Array<int> shift;       // Time shift to apply per channel (nchan)
-            Array<int,true> conj;   // True if baseline needs a conjugate (nbl)
+            Array<int> G_chan;    // Channel index of each entry (nnz)
+            Array<int> G_cols0;   // Base column indices (nnz)
+            Array<int> G_pix;     // pixel index of each entry (nnz)
+            Array<int> shift;     // Time shift to apply per channel (nchan)
+            Array<int> conj;      // True if baseline needs a conjugate (nbl)
             int maxshift;
 
             cusparseHandle_t sparse;

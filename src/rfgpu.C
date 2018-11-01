@@ -17,8 +17,8 @@ namespace py = pybind11;
 #include "timer.h"
 namespace rf = rfgpu;
 
-typedef rf::Array<rf::cdata,true> GPUArrayComplex;
-typedef rf::Array<rf::rdata,true> GPUArrayReal;
+typedef rf::Array<rf::cdata> GPUArrayComplex;
+typedef rf::Array<rf::rdata> GPUArrayReal;
 
 namespace rfgpu {
     void cudaSetDevice(int device) {

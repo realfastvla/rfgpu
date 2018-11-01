@@ -32,7 +32,9 @@ using namespace rfgpu;
         throw std::invalid_argument(msg); \
     }
 
-Grid::Grid(int _nbl, int _nchan, int _ntime, int _upix, int _vpix) {
+Grid::Grid(int _nbl, int _nchan, int _ntime, int _upix, int _vpix) 
+: G_cols(false), shift(false)  // Any GPU-only arrays go here
+{
     nbl = _nbl;
     nchan = _nchan;
     ntime = _ntime;
@@ -163,8 +165,8 @@ void Grid::compute() {
             G_pix.d, G_cols.d, &pbuf_size);
     cusparse_check_rv("cusparseXcoosort_bufferSizeExt");
 
-    Array<char> pbuf(pbuf_size);
-    Array<int> perm(nnz);
+    Array<char> pbuf(pbuf_size,false);
+    Array<int> perm(nnz,false);
     rv = cusparseCreateIdentityPermutation(sparse, nnz, perm.d);
     cusparse_check_rv("cusparseCreateIdentityPermutation");
 
@@ -207,7 +209,7 @@ __global__ void conjugate_data(cdata *dat, int *conj, int nchan, int ntime) {
     }
 }
 
-void Grid::conjugate(Array<cdata,true> &data) {
+void Grid::conjugate(Array<cdata> &data) {
     array_dim_check("Grid::conjugate", data, indim());
     IFTIMER( timers["conj"]->start(); )
     conjugate_data<<<nbl,512>>>(data.d, conj.d, nchan, ntime);
@@ -232,7 +234,7 @@ __global__ void downsample_data(cdata *dat, int nchan, int ntime) {
     }
 }
 
-void Grid::downsample(Array<cdata,true> &data) {
+void Grid::downsample(Array<cdata> &data) {
     array_dim_check("Grid::downsample", data, indim());
     IFTIMER( timers["ds"]->start(); )
     downsample_data<<<nbl,512>>>(data.d, nchan, ntime);
@@ -250,7 +252,7 @@ __global__ void adjust_cols(int *ocol, int *icol, int *chan,
     if (ii<nnz) { ocol[ii] = icol[ii]*ntime + lshift[chan[ii]] + itime; }
 }
 
-void Grid::operate(Array<cdata,true> &in, Array<cdata,true> &out, int itime) {
+void Grid::operate(Array<cdata> &in, Array<cdata> &out, int itime) {
     array_dim_check("Grid::operate(in)", in, indim());
     array_dim_check("Grid::operate(out)", out, outdim());
     operate(in.d, out.d, itime);
