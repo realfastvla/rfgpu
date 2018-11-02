@@ -40,9 +40,11 @@ PYBIND11_MODULE(rfgpu, m) {
         .def(py::init())
         .def(py::init<unsigned>())
         .def(py::init<std::vector<unsigned>>())
+        .def(py::init<std::vector<unsigned>,std::vector<int>>())
         .def("len", &GPUArrayComplex::len)
         .def("h2d", &GPUArrayComplex::h2d)
         .def("d2h", &GPUArrayComplex::d2h)
+        .def("devices", &GPUArrayComplex::devices)
         .def_property_readonly("data", [](py::object &obj) {
                 GPUArrayComplex &a = obj.cast<GPUArrayComplex&>();
                 return py::array_t<std::complex<float>>(
@@ -56,9 +58,11 @@ PYBIND11_MODULE(rfgpu, m) {
         .def(py::init())
         .def(py::init<unsigned>())
         .def(py::init<std::vector<unsigned>>())
+        .def(py::init<std::vector<unsigned>,std::vector<int>>())
         .def("len", &GPUArrayReal::len)
         .def("h2d", &GPUArrayReal::h2d)
         .def("d2h", &GPUArrayReal::d2h)
+        .def("devices", &GPUArrayReal::devices)
         .def_property_readonly("data", [](py::object &obj) {
                 GPUArrayReal &a = obj.cast<GPUArrayReal&>();
                 return py::array_t<float>(

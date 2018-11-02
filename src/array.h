@@ -1,7 +1,7 @@
 #ifndef _ARRAY_H
 #define _ARRAY_H
 
-#include <set>
+#include <map>
 #include <vector>
 #include <stdexcept>
 
@@ -28,17 +28,19 @@ namespace rfgpu {
             Array(bool _host=true);
             Array(unsigned len, bool _host=true);
             Array(std::vector<unsigned> dims, bool _host=true);
+            Array(std::vector<unsigned> dims, std::vector<int> devices, bool _host=true);
             ~Array();
+            void set_devices (std::vector<int> devices) { _devices=devices; }
             void resize(unsigned len);
             void resize(std::vector<unsigned> len);
+            void free();
             size_t size() const { return sizeof(T)*_len; }
             int len() const { return _len; }
             std::vector<unsigned> dims() const { return _dims; }
+            std::vector<int> devices() const { return _devices; }
             T *h; // Pointer to data on host
-            T *d; // Pointer to data on gpu
-            // TODO use std::map to have a set of device pointers
-            // on specific devices.
-            //std::map<int, T*> d;
+            T *d; // Pointer to data on first gpu; for backwards compatibility
+            std::map<int, T*> dd; // Actual map of device -> pointer
             void h2d(); // Copy data from host to device
             void d2h(); // Copy data from device to host
             void init(T val); // Only on host
@@ -74,6 +76,15 @@ namespace rfgpu {
     }
 
     template <class T>
+    Array<T>::Array(std::vector<unsigned> dims, std::vector<int> devices, bool _host) { 
+        host = _host;
+        h = NULL;
+        d = NULL;
+        set_devices(devices);
+        resize(dims);
+    }
+
+    template <class T>
     void Array<T>::resize(unsigned len) {
         std::vector<unsigned> dims;
         dims.push_back(len);
@@ -82,21 +93,36 @@ namespace rfgpu {
 
     template <class T>
     void Array<T>::resize(std::vector<unsigned> dims) {
+        int curdev;
+        CUDA_ERROR_CHECK(cudaGetDevice(&curdev));
+        if (_devices.empty()) { _devices.push_back(curdev); }
         _len = dims[0];
         for (unsigned i=1; i<dims.size(); i++) { _len *= dims[i]; }
         _dims = dims;
-        if (d) CUDA_ERROR_CHECK(cudaFree(d));
-        CUDA_ERROR_CHECK(cudaMalloc((void**)&d, size()));
-        if (host) {
-            if (h) CUDA_ERROR_CHECK(cudaFreeHost(h));
-            CUDA_ERROR_CHECK(cudaMallocHost((void**)&h, size()));
+        free();
+        if (host) CUDA_ERROR_CHECK(cudaMallocHost((void**)&h, size()));
+        for (auto it=_devices.begin(); it!=_devices.end(); ++it) {
+            T* dtmp;
+            CUDA_ERROR_CHECK(cudaSetDevice(*it));
+            CUDA_ERROR_CHECK(cudaMalloc((void**)&dtmp, size()));
+            dd[*it] = dtmp;
         }
+        d = dd[_devices[0]];
+        CUDA_ERROR_CHECK(cudaSetDevice(curdev));
+    }
+
+    template <class T>
+    void Array<T>::free() {
+        if (h) CUDA_ERROR_CHECK(cudaFreeHost(h));
+        h = NULL;
+        for (auto it=dd.begin(); it!=dd.end(); ++it)
+            if (it->second) CUDA_ERROR_CHECK(cudaFree(it->second));
+        dd.erase(dd.begin(),dd.end());
     }
 
     template <class T>
     Array<T>::~Array() {
-        if (d) CUDA_ERROR_CHECK(cudaFree(d)); 
-        if (h) CUDA_ERROR_CHECK(cudaFreeHost(h));
+        free();
     }
 
     template <class T>
