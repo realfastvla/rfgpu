@@ -30,6 +30,7 @@ namespace rfgpu {
             Array(std::vector<unsigned> dims, bool _host=true);
             ~Array();
             void resize(unsigned len);
+            void resize(std::vector<unsigned> len);
             size_t size() const { return sizeof(T)*_len; }
             int len() const { return _len; }
             std::vector<unsigned> dims() const { return _dims; }
@@ -44,6 +45,7 @@ namespace rfgpu {
         protected:
             unsigned _len;
             std::vector<unsigned> _dims;
+            std::vector<int> _devices;
             bool host;  // true if array will also be on host
     };
 
@@ -68,17 +70,21 @@ namespace rfgpu {
         host = _host;
         h = NULL;
         d = NULL;
-        unsigned len = dims[0];
-        for (unsigned i=1; i<dims.size(); i++) { len *= dims[i]; }
-        resize(len); 
-        _dims = dims;
+        resize(dims);
     }
 
     template <class T>
     void Array<T>::resize(unsigned len) {
-        _len = len;
-        _dims.resize(1);
-        _dims[0] = len;
+        std::vector<unsigned> dims;
+        dims.push_back(len);
+        resize(dims);
+    }
+
+    template <class T>
+    void Array<T>::resize(std::vector<unsigned> dims) {
+        _len = dims[0];
+        for (unsigned i=1; i<dims.size(); i++) { _len *= dims[i]; }
+        _dims = dims;
         if (d) CUDA_ERROR_CHECK(cudaFree(d));
         CUDA_ERROR_CHECK(cudaMalloc((void**)&d, size()));
         if (host) {
