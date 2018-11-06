@@ -9,7 +9,7 @@ try:
     dev = int(sys.argv[1])
 except:
     dev = 0
-print 'using cuda device %d' % dev
+print('using cuda device %d' % dev)
 rfgpu.cudaSetDevice(dev)
 
 # B-config uv points
@@ -21,7 +21,7 @@ ntime = 256
 xpix = 2048
 ypix = 1024
 upix = xpix
-vpix = ypix/2 + 1
+vpix = ypix//2 + 1
 freq = np.linspace(1000.0,2000.0,nchan)
 dt = 5e-3
 ddm = 1.0
@@ -75,7 +75,7 @@ vis_raw.data[:,:,15] += vis
 
 # put another one in, with dispersion
 for ichan in range(nchan):
-    vis_raw.data[:,ichan,40+shifts[ndm/2,ichan]] += vis[:,ichan]
+    vis_raw.data[:,ichan,40+shifts[ndm//2,ichan]] += vis[:,ichan]
 
 vis_raw.h2d()  # Send it to GPU memory
 
@@ -97,7 +97,7 @@ print('img 0: max {0}, std {1}, peak {2}'
       .format(img_data0.max(), img_data0.std(), np.where(img_data0 == img_data0.max())))
 print('img 0: max {0}, std {1}, xpeak {2}, ypeak {3}'
       .format(s['max'], s['rms'], s['xpeak']+xpix/2, s['ypeak']+ypix/2))
-print s
+print(s)
 
 # Image time slice 1, this should have two point sources
 grid.operate(vis_raw, vis_grid, 15)
@@ -110,16 +110,16 @@ print('img 1: max {0}, std {1}, peak {2}'
       .format(img_data1.max(), img_data1.std(), np.where(img_data1 == img_data1.max())))
 print('img 1: max {0}, std {1}, xpeak {2}, ypeak {3}'
       .format(s['max'], s['rms'], s['xpeak']+xpix/2, s['ypeak']+ypix/2))
-print s
+print(s)
 
 # Image all dm/time slices, get back rms and max value for each
 nds = 4 # number of downsamples
-img_rms = np.zeros((nds,ndm,ntime/2))
-img_max = np.zeros((nds,ndm,ntime/2))
+img_rms = np.zeros((nds,ndm,ntime//2))
+img_max = np.zeros((nds,ndm,ntime//2))
 for ids in range(nds):
     for idm in range(ndm):
         grid.set_shift(shifts[idm]>>ids)
-        for itime in range((ntime/2)>>ids):
+        for itime in range((ntime//2)>>ids):
             grid.operate(vis_raw,vis_grid,itime)
             image.operate(vis_grid,img_grid)
             s = image.stats(img_grid)
