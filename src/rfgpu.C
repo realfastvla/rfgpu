@@ -43,7 +43,7 @@ PYBIND11_MODULE(rfgpu, m) {
         .def(py::init<std::vector<unsigned>,std::vector<int>>())
         .def("len", &GPUArrayComplex::len)
         .def("h2d", &GPUArrayComplex::h2d)
-        .def("d2h", &GPUArrayComplex::d2h)
+        .def("d2h", &GPUArrayComplex::d2h, py::arg("device")=-1)
         .def("devices", &GPUArrayComplex::devices)
         .def_property_readonly("data", [](py::object &obj) {
                 GPUArrayComplex &a = obj.cast<GPUArrayComplex&>();
@@ -61,7 +61,7 @@ PYBIND11_MODULE(rfgpu, m) {
         .def(py::init<std::vector<unsigned>,std::vector<int>>())
         .def("len", &GPUArrayReal::len)
         .def("h2d", &GPUArrayReal::h2d)
-        .def("d2h", &GPUArrayReal::d2h)
+        .def("d2h", &GPUArrayReal::d2h, py::arg("device")=-1)
         .def("devices", &GPUArrayReal::devices)
         .def_property_readonly("data", [](py::object &obj) {
                 GPUArrayReal &a = obj.cast<GPUArrayReal&>();

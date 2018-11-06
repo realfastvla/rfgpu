@@ -42,7 +42,7 @@ namespace rfgpu {
             T *d; // Pointer to data on first gpu; for backwards compatibility
             std::map<int, T*> dd; // Actual map of device -> pointer
             void h2d(); // Copy data from host to device
-            void d2h(); // Copy data from device to host
+            void d2h(int device=-1); // Copy data from device to host
             void init(T val); // Only on host
         protected:
             unsigned _len;
@@ -127,16 +127,42 @@ namespace rfgpu {
 
     template <class T>
     void Array<T>::h2d() {
-        if (!h || !d)  
+        if (!h || !d || dd.empty())  
             throw std::runtime_error("Array::h2d() missing allocation");
-        CUDA_ERROR_CHECK(cudaMemcpy(d, h, size(), cudaMemcpyHostToDevice));
+
+        // Save current selected device
+        int curdev;
+        CUDA_ERROR_CHECK(cudaGetDevice(&curdev));
+
+        // Send data to all devices
+        for (auto it=dd.begin(); it!=dd.end(); ++it) {
+            CUDA_ERROR_CHECK(cudaSetDevice(it->first));
+            CUDA_ERROR_CHECK(cudaMemcpyAsync(it->second, h, size(), 
+                        cudaMemcpyHostToDevice));
+        }
+
+        // Reset to original device setting
+        CUDA_ERROR_CHECK(cudaSetDevice(curdev));
     }
 
     template <class T>
-    void Array<T>::d2h() {
-        if (!h || !d)
+    void Array<T>::d2h(int device) {
+        if (!h || !d || dd.empty())
             throw std::runtime_error("Array::d2h() missing allocation");
-        CUDA_ERROR_CHECK(cudaMemcpy(h, d, size(), cudaMemcpyDeviceToHost));
+        if (device<0) { device = _devices[0]; } 
+        if (dd.find(device)==dd.end())
+            throw std::runtime_error("Array::d2h() requested device not allocated");
+
+        // Save current selected device
+        int curdev;
+        CUDA_ERROR_CHECK(cudaGetDevice(&curdev));
+
+        // Do the copy
+        CUDA_ERROR_CHECK(cudaSetDevice(device));
+        CUDA_ERROR_CHECK(cudaMemcpy(h, dd[device], size(), cudaMemcpyDeviceToHost));
+
+        // Reset to original device setting
+        CUDA_ERROR_CHECK(cudaSetDevice(curdev));
     }
 
     template <class T>
