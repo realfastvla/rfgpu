@@ -27,6 +27,20 @@ namespace rfgpu {
 
             int _saved_device;
             int _device;
+
+            friend class CheckDevice;
+    };
+
+    /* Create a CheckDevice instance within any method that needs to
+     * switch to the device, then reset when exiting.
+     */
+    class CheckDevice
+    {
+        public:
+            CheckDevice(OnDevice *_od) { od=_od; _od->check_device(); }
+            ~CheckDevice() { od->reset_device(); }
+        protected:
+            OnDevice *od;
     };
 }
 
