@@ -15,17 +15,33 @@
 
 #include "image.h"
 #include "timer.h"
+#include "device.h"
 
 using namespace rfgpu;
 
-Image::Image(int _xpix, int _ypix) {
+#define array_dim_check(func,array,expected) { \
+    if (array.dims() != expected) { \
+        char msg[1024]; \
+        sprintf(msg, "%s: array dimension error", func); \
+        throw std::invalid_argument(msg); \
+    } \
+    if (array.has_device(_device)==false) { \
+        char msg[1024]; \
+        sprintf(msg, "%s: array not defined on device %d", func, _device); \
+        throw std::invalid_argument(msg); \
+    }\
+}
+
+Image::Image(int _xpix, int _ypix, int device) : OnDevice(device) {
     plan = 0;
     xpix = _xpix;
     ypix = _ypix;
     setup();
+    reset_device();
 }
 
 Image::~Image() {
+    CheckDevice cd(this);
     if (plan) cufftDestroy(plan);
     for (unsigned i=0; i<stat_funcs.size(); i++) delete stat_funcs[i];
 #ifdef USETIMER
@@ -59,10 +75,17 @@ void Image::operate(Array<cdata> &vis, Array<rdata> &img) {
                 img.len(), imgpix());
         throw std::invalid_argument(msg);
     }
-    operate(vis.d, img.d);
+    if (vis.has_device(_device)==false || img.has_device(_device)==false) {
+        char msg[1024];
+        sprintf(msg, "Image::operate arrays not defined on device %d",
+                _device);
+        throw std::invalid_argument(msg);
+    }
+    operate(vis.dd[_device], img.dd[_device]);
 }
 
 void Image::operate(cdata *vis, rdata *img) {
+    CheckDevice cd(this);
     cufftResult_t rv;
     IFTIMER( timers["fft"]->start(); )
     rv = cufftExecC2R(plan, vis, img);
@@ -79,6 +102,7 @@ void Image::add_stat(std::string name) {
     for (unsigned i=0; i<stat_funcs.size(); i++) {
         if (name == stat_funcs[i]->name) return;
     }
+    CheckDevice cd(this);
     if (name=="max") {
         stat_funcs.push_back(new ImageMax(xpix,ypix,name));
     } else if (name=="pix") {
@@ -108,6 +132,7 @@ std::vector<std::string> Image::stat_names() const {
 }
 
 std::vector<double> Image::stats(Array<rdata> &img) {
+    CheckDevice cd(this);
     for (unsigned i=0; i<stat_funcs.size(); i++) {
         IFTIMER( timers[stat_funcs[i]->name]->start(); )
         stat_funcs[i]->operate(img, _stats.d + _stat_offs[i]);
@@ -119,15 +144,17 @@ std::vector<double> Image::stats(Array<rdata> &img) {
     return std::vector<double>(_stats.h, _stats.h+_stats.len());
 }
 
-ImageStatistic::ImageStatistic(int _xpix, int _ypix, std::string _name) 
-: tmp(false) 
+ImageStatistic::ImageStatistic(int _xpix, int _ypix, std::string _name, int device) 
+: tmp(false), OnDevice(device) 
 {
     xpix = _xpix;
     ypix = _ypix;
     name = _name;
+    reset_device();
 }
 
 void ImageStatistic::setup() {
+    CheckDevice cd(this);
     tmp_bytes = 0;
     calc_buffer_size(); // This should fill in value for tmp_bytes
     tmp.resize(tmp_bytes);
@@ -139,7 +166,9 @@ void ImageMax::calc_buffer_size() {
 }
 
 void ImageMax::operate(Array<rdata> &img, double *result) {
-    cub::DeviceReduce::Max(tmp.d, tmp_bytes, img.d, result, xpix*ypix);
+    array_dim_check("ImageMax::operate", img, indim());
+    CheckDevice cd(this);
+    cub::DeviceReduce::Max(tmp.d, tmp_bytes, img.dd[_device], result, xpix*ypix);
 }
 
 void ImageMaxPixel::calc_buffer_size() {
@@ -158,11 +187,13 @@ __global__ void get_maxpix(cub::KeyValuePair<int,rdata> *argmax, double *result)
 }
 
 void ImageMaxPixel::operate(Array<rdata> &img, double *result) {
+    array_dim_check("ImageMaxPixel::operate", img, indim());
+    CheckDevice cd(this);
     size_t offs = sizeof(cub::KeyValuePair<int, rdata>);
     size_t tmp_bytes_only = tmp_bytes - offs;
     cub::KeyValuePair<int, rdata> *argmax = 
         (cub::KeyValuePair<int, rdata> *)(tmp.d + offs);
-    cub::DeviceReduce::ArgMax(tmp.d, tmp_bytes_only, img.d, argmax, xpix*ypix);
+    cub::DeviceReduce::ArgMax(tmp.d, tmp_bytes_only, img.dd[_device], argmax, xpix*ypix);
     get_maxpix<<<1,1>>>(argmax, result);
 }
 
@@ -186,8 +217,10 @@ void ImageRMS::calc_buffer_size() {
 }
 
 void ImageRMS::operate(Array<rdata> &img, double *result) {
+    array_dim_check("ImageRMS::operate", img, indim());
+    CheckDevice cd(this);
     cub::TransformInputIterator<double, fn_square, rdata*> 
-        sqr(img.d, fn_square());
+        sqr(img.dd[_device], fn_square());
     cub::DeviceReduce::Sum(tmp.d, tmp_bytes, sqr, result, xpix*ypix);
 }
 
@@ -204,10 +237,12 @@ __global__ void get_iqr(rdata *sorted, double *result, int npix) {
 }
 
 void ImageIQR::operate(Array<rdata> &img, double *result) {
+    array_dim_check("ImageIQR::operate", img, indim());
+    CheckDevice cd(this);
     size_t offs = sizeof(rdata)*xpix*ypix;
     size_t tmp_bytes_only = tmp_bytes - offs;
     rdata *sorted = (rdata *)(tmp.d + offs);
     cub::DeviceRadixSort::SortKeys(tmp.d, tmp_bytes_only,
-            img.d, sorted, xpix*ypix);
+            img.dd[_device], sorted, xpix*ypix);
     get_iqr<<<1,1>>>(sorted, result, xpix*ypix);
 }

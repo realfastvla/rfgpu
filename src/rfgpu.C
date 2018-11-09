@@ -74,6 +74,7 @@ PYBIND11_MODULE(rfgpu, m) {
 
     py::class_<rf::Grid>(m, "Grid")
         .def(py::init<int,int,int,int,int>())
+        .def(py::init<int,int,int,int,int,int>())
         .def("set_uv", &rf::Grid::set_uv)
         .def("set_freq", &rf::Grid::set_freq)
         .def("set_shift", &rf::Grid::set_shift)

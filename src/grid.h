@@ -11,17 +11,18 @@
 
 #include "array.h"
 #include "timer.h"
+#include "device.h"
 
 namespace rfgpu {
 
     typedef cuComplex cdata; // complex data type
     typedef cufftReal rdata; // real data type
 
-    class Grid
+    class Grid : public OnDevice
     {
         public:
 
-            Grid(int nbl, int nchan, int ntime, int upix, int vpix);
+            Grid(int nbl, int nchan, int ntime, int upix, int vpix, int device=-1);
             
             ~Grid() {};
 

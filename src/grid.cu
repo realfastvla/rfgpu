@@ -15,6 +15,7 @@
 
 #include "timer.h"
 #include "grid.h"
+#include "device.h"
 
 using namespace rfgpu;
 
@@ -25,15 +26,21 @@ using namespace rfgpu;
         throw std::runtime_error(msg); \
     }
 
-#define array_dim_check(func,array,expected) \
+#define array_dim_check(func,array,expected) { \
     if (array.dims() != expected) { \
         char msg[1024]; \
         sprintf(msg, "%s: array dimension error", func); \
         throw std::invalid_argument(msg); \
-    }
+    } \
+    if (array.has_device(_device)==false) { \
+        char msg[1024]; \
+        sprintf(msg, "%s: array not defined on device %d", func, _device); \
+        throw std::invalid_argument(msg); \
+    }\
+}
 
-Grid::Grid(int _nbl, int _nchan, int _ntime, int _upix, int _vpix) 
-: G_cols(false), shift(false)  // Any GPU-only arrays go here
+Grid::Grid(int _nbl, int _nchan, int _ntime, int _upix, int _vpix, int device) 
+: G_cols(false), shift(false), OnDevice(device)  // Any GPU-only arrays go here
 {
     nbl = _nbl;
     nchan = _nchan;
@@ -63,6 +70,7 @@ Grid::Grid(int _nbl, int _nchan, int _ntime, int _upix, int _vpix)
 #endif
 
     allocate();
+    reset_device();
 }
 
 void Grid::allocate() {
@@ -128,11 +136,13 @@ void Grid::set_shift(const std::vector<int> &_shift) {
                 _maxshift, ntime);
         throw std::invalid_argument(msg);
     }
-    cudaMemcpy(shift.d, _shift.data(), shift.size(), cudaMemcpyHostToDevice);
     maxshift = _maxshift;
+    CheckDevice cd(this);
+    cudaMemcpy(shift.d, _shift.data(), shift.size(), cudaMemcpyHostToDevice);
 }
 
 void Grid::compute() {
+    CheckDevice cd(this);
 
     //printf("nrow=%d ncol=%d\n", nrow(), ncol());
     IFTIMER( timers["compute"]->start(); )
@@ -211,8 +221,9 @@ __global__ void conjugate_data(cdata *dat, int *conj, int nchan, int ntime) {
 
 void Grid::conjugate(Array<cdata> &data) {
     array_dim_check("Grid::conjugate", data, indim());
+    CheckDevice cd(this);
     IFTIMER( timers["conj"]->start(); )
-    conjugate_data<<<nbl,512>>>(data.d, conj.d, nchan, ntime);
+    conjugate_data<<<nbl,512>>>(data.dd[_device], conj.d, nchan, ntime);
     IFTIMER( timers["conj"]->stop(); )
 }
 
@@ -236,8 +247,9 @@ __global__ void downsample_data(cdata *dat, int nchan, int ntime) {
 
 void Grid::downsample(Array<cdata> &data) {
     array_dim_check("Grid::downsample", data, indim());
+    CheckDevice cd(this);
     IFTIMER( timers["ds"]->start(); )
-    downsample_data<<<nbl,512>>>(data.d, nchan, ntime);
+    downsample_data<<<nbl,512>>>(data.dd[_device], nchan, ntime);
     IFTIMER( timers["ds"]->stop(); )
 }
 
@@ -255,7 +267,7 @@ __global__ void adjust_cols(int *ocol, int *icol, int *chan,
 void Grid::operate(Array<cdata> &in, Array<cdata> &out, int itime) {
     array_dim_check("Grid::operate(in)", in, indim());
     array_dim_check("Grid::operate(out)", out, outdim());
-    operate(in.d, out.d, itime);
+    operate(in.dd[_device], out.dd[_device], itime);
 }
 
 void Grid::operate(cdata *in, cdata *out, int itime) {
@@ -266,6 +278,8 @@ void Grid::operate(cdata *in, cdata *out, int itime) {
                 itime, maxshift, ntime);
         throw std::invalid_argument(msg);
     }
+
+    CheckDevice cd(this);
 
     IFTIMER( timers["cols"]->start(); )
     adjust_cols<<<nbl, nchan>>>(G_cols.d, G_cols0.d, G_chan.d, shift.d, 

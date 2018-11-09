@@ -11,6 +11,7 @@
 
 #include "array.h"
 #include "timer.h"
+#include "device.h"
 
 namespace rfgpu {
 
@@ -19,10 +20,10 @@ namespace rfgpu {
 
     class ImageStatistic;
 
-    class Image
+    class Image : public OnDevice
     {
         public:
-            Image(int xpix, int ypix);
+            Image(int xpix, int ypix, int device=-1);
             ~Image();
 
             void operate(Array<cdata> &vis, Array<rdata> &img);
@@ -51,12 +52,12 @@ namespace rfgpu {
             std::vector<ImageStatistic *> stat_funcs;
     };
 
-    class ImageStatistic
+    class ImageStatistic : public OnDevice
     {
         friend class Image;
 
         public:
-            ImageStatistic(int xpix, int ypix, std::string name);
+            ImageStatistic(int xpix, int ypix, std::string name, int device=-1);
             ~ImageStatistic() {};
 
             virtual void operate(Array<rdata> &img, double *result) = 0;
@@ -79,6 +80,13 @@ namespace rfgpu {
 
             int xpix; 
             int ypix;
+
+            std::vector<unsigned> indim() const { 
+                std::vector<unsigned> d(2);
+                d[0] = xpix;
+                d[1] = ypix;
+                return d;
+            }
 
             std::string name;
 
