@@ -18,7 +18,7 @@ NVCC = nvcc -ccbin $(CXX) -arch sm_61
 
 CFLAGS = -g -std=c++11
 
-OBJS = grid.o image.o
+OBJS = grid.o image.o device.o
 
 # Uncomment these two lines to compile timing code
 CFLAGS += -DUSETIMER
