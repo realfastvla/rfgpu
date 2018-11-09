@@ -38,6 +38,7 @@ namespace rfgpu {
             int len() const { return _len; }
             std::vector<unsigned> dims() const { return _dims; }
             std::vector<int> devices() const { return _devices; }
+            bool has_device(int device) const { return dd.find(device)!=dd.end(); }
             T *h; // Pointer to data on host
             T *d; // Pointer to data on first gpu; for backwards compatibility
             std::map<int, T*> dd; // Actual map of device -> pointer
