@@ -36,15 +36,17 @@ PYBIND11_MODULE(rfgpu, m) {
 
     m.def("cudaSetDevice", &rf::cudaSetDevice);
 
-    py::class_<GPUArrayComplex>(m, "GPUArrayComplex")
-        .def(py::init())
-        .def(py::init<unsigned>())
-        .def(py::init<std::vector<unsigned>>())
-        .def(py::init<std::vector<unsigned>,std::vector<int>>())
-        .def("len", &GPUArrayComplex::len)
-        .def("h2d", &GPUArrayComplex::h2d)
-        .def("d2h", &GPUArrayComplex::d2h, py::arg("device")=-1)
-        .def("devices", &GPUArrayComplex::devices)
+    py::class_<GPUArrayComplex>(m, "GPUArrayComplex",
+            "Array of complex64 that exists in both host and device memory")
+        .def(py::init<unsigned>(), py::arg("length"))
+        .def(py::init<std::vector<unsigned>>(), py::arg("dims"))
+        .def(py::init<std::vector<unsigned>,std::vector<int>>(),
+                py::arg("dims"), py::arg("devices"))
+        .def("len", &GPUArrayComplex::len, "Total length of array")
+        .def("h2d", &GPUArrayComplex::h2d, "Transfer data from host to device(s)")
+        .def("d2h", &GPUArrayComplex::d2h, "Transfer data from a device to host",
+                py::arg("device")=-1)
+        .def("devices", &GPUArrayComplex::devices, "List of associated devices")
         .def_property_readonly("data", [](py::object &obj) {
                 GPUArrayComplex &a = obj.cast<GPUArrayComplex&>();
                 return py::array_t<std::complex<float>>(
@@ -52,17 +54,19 @@ PYBIND11_MODULE(rfgpu, m) {
                         (std::complex<float> *)a.h,
                         obj
                         );
-                });
+                }, "Numpy view of the array in host memory");
 
-    py::class_<GPUArrayReal>(m, "GPUArrayReal")
-        .def(py::init())
-        .def(py::init<unsigned>())
-        .def(py::init<std::vector<unsigned>>())
-        .def(py::init<std::vector<unsigned>,std::vector<int>>())
-        .def("len", &GPUArrayReal::len)
-        .def("h2d", &GPUArrayReal::h2d)
-        .def("d2h", &GPUArrayReal::d2h, py::arg("device")=-1)
-        .def("devices", &GPUArrayReal::devices)
+    py::class_<GPUArrayReal>(m, "GPUArrayReal",
+            "Array of float32 that exists in both host and device memory")
+        .def(py::init<unsigned>(), py::arg("length"))
+        .def(py::init<std::vector<unsigned>>(), py::arg("dims"))
+        .def(py::init<std::vector<unsigned>,std::vector<int>>(),
+                py::arg("dims"), py::arg("devices"))
+        .def("len", &GPUArrayReal::len, "Total length of array")
+        .def("h2d", &GPUArrayReal::h2d, "Transfer data from host to device(s)")
+        .def("d2h", &GPUArrayReal::d2h, "Transfer data from a device to host",
+                py::arg("device")=-1)
+        .def("devices", &GPUArrayReal::devices, "List of associated devices")
         .def_property_readonly("data", [](py::object &obj) {
                 GPUArrayReal &a = obj.cast<GPUArrayReal&>();
                 return py::array_t<float>(
@@ -70,7 +74,7 @@ PYBIND11_MODULE(rfgpu, m) {
                         (float *)a.h,
                         obj
                         );
-                });
+                }, "Numpy view of the array in host memory");
 
     py::class_<rf::Grid>(m, "Grid")
         .def(py::init<int,int,int,int,int>())
