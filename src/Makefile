@@ -21,8 +21,8 @@ CFLAGS = -g -std=c++11
 OBJS = grid.o image.o device.o
 
 # Uncomment these two lines to compile timing code
-CFLAGS += -DUSETIMER
-OBJS += timer.o
+#CFLAGS += -DUSETIMER
+#OBJS += timer.o
 
 %.o : %.cu %.h
 	$(NVCC) $(CFLAGS) --compiler-options -fPIC \
