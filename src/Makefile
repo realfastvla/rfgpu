@@ -19,16 +19,17 @@ NVCC = nvcc -ccbin $(CXX) -arch sm_61
 CFLAGS = -g -std=c++11
 
 OBJS = grid.o image.o device.o
+HDRS = array.h
 
 # Uncomment these two lines to compile timing code
 #CFLAGS += -DUSETIMER
 #OBJS += timer.o
 
-%.o : %.cu %.h
+%.o : %.cu %.h $(HDRS) Makefile
 	$(NVCC) $(CFLAGS) --compiler-options -fPIC \
 		-c $(CUDA_INC) $< -o $@
 
-rfgpu.so: rfgpu.C $(OBJS)
+rfgpu.so: rfgpu.C $(OBJS) $(HDRS) Makefile
 	$(CXX) $(CFLAGS) -shared -fPIC \
 		$(PY_INC) $(PYBIND_INC) $(CUDA_INC) \
 		$< -o $@ $(OBJS) $(CUDA_LIB)
