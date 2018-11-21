@@ -233,7 +233,7 @@ __global__ void downsample_data(cdata *dat, int nchan, int ntime) {
     const int ibl = blockIdx.x;
     const int offs = ibl*nchan*ntime;
     for (int ichan=0; ichan<nchan; ichan++) {
-        for (int itime=2*threadIdx.x; itime<ntime; itime+=blockDim.x) {
+        for (int itime=2*threadIdx.x; itime<ntime; itime+=2*blockDim.x) {
             const int ii = offs + ichan*ntime + itime;
             float2 x0 = dat[ii];
             float2 x1 = dat[ii+1];
