@@ -77,8 +77,13 @@ PYBIND11_MODULE(rfgpu, m) {
                 }, "Numpy view of the array in host memory");
 
     py::class_<rf::Grid>(m, "Grid")
-        .def(py::init<int,int,int,int,int>())
-        .def(py::init<int,int,int,int,int,int>())
+        .def(py::init<int,int,int,int,int>(),
+                py::arg("nbl"), py::arg("nchan"), py::arg("ntime"),
+                py::arg("upix"), py::arg("vpix")) 
+        .def(py::init<int,int,int,int,int,int>(),
+                py::arg("nbl"), py::arg("nchan"), py::arg("ntime"),
+                py::arg("upix"), py::arg("vpix"),
+                py::arg("device")) 
         .def("set_uv", &rf::Grid::set_uv)
         .def("set_freq", &rf::Grid::set_freq)
         .def("set_shift", &rf::Grid::set_shift)
