@@ -6,7 +6,8 @@ incorporated into a more complete processing pipeline in
 [rfpipe](https://github.com/realfastvla/rfpipe).
 
 The low-level GPU routines are written entirely in CUDA/C++, and a
-python interface is provided using pybind11.  This is comp
+python interface is provided using pybind11.  This is compatible with
+both python 2.7 and 3.x.
 
 ## Installation
 
