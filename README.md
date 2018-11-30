@@ -29,7 +29,7 @@ typical install into the realfast conda environment would use:
 ```
 cd src
 make CXX=/opt/local/compilers/gcc-5/bin/g++
-make install PRFIX=/home/cbe-master/realfast/anaconda/envs/development3
+make install PREFIX=/home/cbe-master/realfast/anaconda/envs/development3
 ```
 
 At other sites, you may also need to specify the CUDA location via the
