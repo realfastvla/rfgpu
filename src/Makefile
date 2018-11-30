@@ -1,3 +1,21 @@
+# rfgpu Makfile
+
+# The C++ compiler may need to be specified if the default on your system
+# is not compatible with C++-11.  For example at NRAO, you should build using:
+#
+#  make CXX=/opt/local/compilers/gcc-5/bin/g++
+
+# Also note the following paths may need to be changed for your system and/or
+# install directory.  You can override these defaults on the command line using,
+# for example:
+#
+#   make CUDA_DIR=/my/special/path/to/cuda
+#   make install PREFIX=$HOME/local
+#
+CUDA_DIR ?= /opt/nvidia/cuda
+PREFIX ?= /usr/local
+
+### Things below this line should not need to be edited ###
 
 all: rfgpu.so
 
@@ -6,17 +24,14 @@ clean:
 
 MISC_LIB = -lm
 
-CUDA_DIR = /opt/nvidia/cuda
 CUDA_INC = -I $(CUDA_DIR)/include -DUNIX -I ../extern/cub-1.8.0
 CUDA_LIB = -L $(CUDA_DIR)/lib64 -lcufft -lcusparse -lnvToolsExt -lcuda -lcudart -lGL -lGLU $(MISC_LIB)
 
 PY_INC = -I $(shell python -c "import sysconfig; print(sysconfig.get_paths()['include'])")
 PYBIND_INC = -I ../extern/pybind11-2.2.4/include
 
-PREFIX ?= /usr/local
 PYINSTPATH = $(shell  python -c "import sys; print('lib/python%d.%d/site-packages'%(sys.version_info.major,sys.version_info.minor))")
 
-CXX = /opt/local/compilers/gcc-5/bin/g++
 NVCC = nvcc -ccbin $(CXX) -arch sm_61
 
 CFLAGS = -g -std=c++11
