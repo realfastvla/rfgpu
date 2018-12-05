@@ -131,7 +131,7 @@ PYBIND11_MODULE(rfgpu, m) {
                 for (unsigned ii=0; ii<vals.size(); ii++)
                     result[keys[ii]] = vals[ii];
                 return result;
-                })
+                }, py::call_guard<py::gil_scoped_release>())
 #ifdef USETIMER
         .def("timers", [](py::object &o, bool total) {
                 rf::Image &i = o.cast<rf::Image&>();
