@@ -172,7 +172,7 @@ void Grid::compute() {
     // on GPU, sort and compress into CSR matrix format
     size_t pbuf_size;
     rv = cusparseXcoosort_bufferSizeExt(sparse, nrow(), ncol(), nnz, 
-            G_pix.d, G_cols.d, &pbuf_size);
+            G_pix.d, G_cols0.d, &pbuf_size);
     cusparse_check_rv("cusparseXcoosort_bufferSizeExt");
 
     Array<char> pbuf(pbuf_size,false);
@@ -281,8 +281,14 @@ void Grid::operate(cdata *in, cdata *out, int itime) {
 
     CheckDevice cd(this);
 
+    // Need to keep n threads per block less than 1024
+    // Can we automatically get max thread per block?
+    int nthread = 512;
+    int nblock = (nbl*nchan)/nthread;
+    if ((nbl*nchan)%nthread) { nblock++; }
+
     IFTIMER( timers["cols"]->start(); )
-    adjust_cols<<<nbl, nchan>>>(G_cols.d, G_cols0.d, G_chan.d, shift.d, 
+    adjust_cols<<<nblock, nthread>>>(G_cols.d, G_cols0.d, G_chan.d, shift.d, 
             itime, nchan, nnz, ntime);
     IFTIMER( timers["cols"]->stop(); )
 
