@@ -40,7 +40,7 @@ using namespace rfgpu;
 }
 
 Grid::Grid(int _nbl, int _nchan, int _ntime, int _upix, int _vpix, int device) 
-: G_cols(false), shift(false), OnDevice(device)  // Any GPU-only arrays go here
+: G_cols(false), shift(false), mvbuf(false), OnDevice(device)  // Any GPU-only arrays go here
 {
     nbl = _nbl;
     nchan = _nchan;
@@ -54,8 +54,9 @@ Grid::Grid(int _nbl, int _nchan, int _ntime, int _upix, int _vpix, int device)
     cusparseStatus_t rv;
     rv = cusparseCreate(&sparse);
     cusparse_check_rv("cusparseCreate");
-    rv = cusparseCreateMatDescr(&descr);
-    cusparse_check_rv("cusparseCreateMatDescr");
+    //rv = cusparseCreateMatDescr(&descr);
+    //cusparse_check_rv("cusparseCreateMatDescr");
+    descr = NULL;
 
     cell = 80.0; // 80 wavelengths == ~42' FoV
 
@@ -201,6 +202,17 @@ void Grid::compute() {
     }
     G_vals.h2d();
 
+    // Create matrix descriptor
+    if (descr) {
+        rv = cusparseDestroySpMat(descr);
+        cusparse_check_rv("cusparseDestroySpMat");
+    }
+    rv = cusparseCreateCsr(&descr, nrow(), ncol()*ntime, nnz, 
+            G_rows.d, G_cols.d, G_vals.d, 
+            CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO,
+            CUDA_C_32F);
+    cusparse_check_rv("cusparseCreateCsr");
+
     // retrieve channel idx of each data point
     G_cols0.d2h();
     for (int i=0; i<nnz; i++) { G_chan.h[i] = G_cols0.h[i] % nchan; }
@@ -281,6 +293,22 @@ void Grid::operate(cdata *in, cdata *out, int itime) {
 
     CheckDevice cd(this);
 
+    // wrap in and out as cusparseDnVec
+    cusparseStatus_t rv;
+    cusparseDnVecDescr_t v_in, v_out;
+    rv = cusparseCreateDnVec(&v_in, ncol()*ntime, in, CUDA_C_32F);
+    cusparse_check_rv("cusparseCreateDnVec(in)");
+    rv = cusparseCreateDnVec(&v_out, nrow(), out, CUDA_C_32F);
+    cusparse_check_rv("cusparseCreateDnVec(out)");
+
+    // Check and allocate working space
+    size_t bufsize;
+    rv = cusparseSpMV_bufferSize(sparse, CUSPARSE_OPERATION_NON_TRANSPOSE,
+            &h_one, descr, v_in, &h_zero, v_out, CUDA_C_32F,
+            CUSPARSE_SPMV_CSR_ALG1, &bufsize);
+    cusparse_check_rv("cusparseSpMV_bufferSize");
+    if (mvbuf.size() != bufsize) { mvbuf.resize(bufsize); }
+
     // Need to keep n threads per block less than 1024
     // Can we automatically get max thread per block?
     int nthread = 512;
@@ -292,13 +320,23 @@ void Grid::operate(cdata *in, cdata *out, int itime) {
             itime, nchan, nnz, ntime);
     IFTIMER( timers["cols"]->stop(); )
 
-    cusparseStatus_t rv;
     IFTIMER( timers["grid"]->start(); )
+#if 0 
     rv = cusparseCcsrmv(sparse, CUSPARSE_OPERATION_NON_TRANSPOSE,
             nrow(), ncol()*ntime, nnz, &h_one, descr,
             G_vals.d, G_rows.d, G_cols.d,
             in, &h_zero, out);
+#endif
+    rv = cusparseSpMV(sparse, CUSPARSE_OPERATION_NON_TRANSPOSE,
+            &h_one, descr, v_in, &h_zero, v_out, CUDA_C_32F,
+            CUSPARSE_SPMV_CSR_ALG1, mvbuf.d);
     IFTIMER (timers["grid"]->stop(); )
     cusparse_check_rv("cusparseCcsrmv");
+
+    // Clean up
+    rv = cusparseDestroyDnVec(v_in);
+    cusparse_check_rv("cusparseDestroyDnVec(in)");
+    rv = cusparseDestroyDnVec(v_out);
+    cusparse_check_rv("cusparseDestroyDnVec(out)");
 }
 

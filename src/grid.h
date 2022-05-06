@@ -87,10 +87,12 @@ namespace rfgpu {
             Array<int> G_pix;     // pixel index of each entry (nnz)
             Array<int> shift;     // Time shift to apply per channel (nchan)
             Array<int> conj;      // True if baseline needs a conjugate (nbl)
+            Array<char> mvbuf;    // Working space for sparse multiply
             int maxshift;
 
             cusparseHandle_t sparse;
-            cusparseMatDescr_t descr;
+            //cusparseMatDescr_t descr;
+            cusparseSpMatDescr_t descr;
 
             // Constant values to pass to matrix routines
             float2 h_one;
