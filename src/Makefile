@@ -14,6 +14,7 @@
 #
 CUDA_DIR ?= /opt/nvidia/cuda
 PREFIX ?= /usr/local
+PYTHON ?= python
 
 ### Things below this line should not need to be edited ###
 
@@ -27,14 +28,14 @@ MISC_LIB = -lm
 CUDA_INC = -I $(CUDA_DIR)/include -DUNIX -I ../extern/cub-1.8.0
 CUDA_LIB = -L $(CUDA_DIR)/lib64 -lcufft -lcusparse -lnvToolsExt -lcuda -lcudart -lGL -lGLU $(MISC_LIB)
 
-PY_INC = -I $(shell python -c "import sysconfig; print(sysconfig.get_paths()['include'])")
+PY_INC = -I $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_paths()['include'])")
 PYBIND_INC = -I ../extern/pybind11-2.2.4/include
 
-PYINSTPATH = $(shell  python -c "import sys; print('lib/python%d.%d/site-packages'%(sys.version_info.major,sys.version_info.minor))")
+PYINSTPATH = $(shell $(PYTHON) -c "import sys; print('lib/python%d.%d/site-packages'%(sys.version_info.major,sys.version_info.minor))")
 
 NVCC = nvcc -ccbin $(CXX) -arch sm_61
 
-CFLAGS = -g -std=c++11
+CFLAGS = -g -std=c++14
 
 OBJS = grid.o image.o device.o
 HDRS = array.h
